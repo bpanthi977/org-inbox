@@ -105,6 +105,23 @@ with `/^https?:\/\//i` and set `contentType: 'url'`.
 
 **Third arg to `getReceivedFiles` must match URL scheme** (`'orginbox'`).
 
+**Do NOT call `clearReceivedFiles()`.** It sets `isClear = true` permanently on
+the singleton instance. The AppState listener checks `!this.isClear` before every
+call — once cleared, no future shares are ever processed for the lifetime of the
+app. The native layer already prevents reprocessing via `setIntent(null)`.
+
+**`react-native-receive-sharing-intent` v2.0.0 has a NullPointerException bug.**
+`ReceiveSharingIntentHelper.sendFileNames` calls `intent.getAction()` without a
+null check. After the first `getFileNames` call, the native module calls
+`mActivity.setIntent(null)`, making every subsequent call NPE. Fixed via
+`patches/react-native-receive-sharing-intent+2.0.0.patch` (patch-package).
+
+**`MainActivity` must override `onNewIntent` to call `setIntent(intent)`.**
+`ReactActivity.onNewIntent` passes the intent to `ReactDelegate` but does NOT call
+`super.onNewIntent()`, which is what updates `getIntent()` in Android. Without
+this, new share intents while the app is running are never visible to
+`getReceivedFiles`. See `android/app/src/main/java/com/orginbox/MainActivity.kt`.
+
 ---
 
 ## Phase 5 — iOS Share Extension
