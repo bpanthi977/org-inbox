@@ -66,6 +66,7 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
 
         <Stack.Screen
           name="SharePreview"
+          initialParams={initialShareItems?.length ? {items: initialShareItems} : undefined}
           options={({
             navigation,
           }: {
