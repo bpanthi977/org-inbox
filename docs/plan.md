@@ -4,8 +4,8 @@
 
 | Phase | Status |
 |---|---|
-| Phase 1: Project scaffold | **TODO** |
-| Phase 2: Types and org formatter | TODO |
+| Phase 1: Project scaffold | **DONE** |
+| Phase 2: Types and org formatter | **DONE** |
 | Phase 3: Settings screen and MMKV storage | TODO |
 | Phase 4: Android share intent | TODO |
 | Phase 5: iOS share extension | TODO |
