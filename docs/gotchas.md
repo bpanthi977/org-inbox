@@ -4,6 +4,27 @@ Hard-won details per phase. Read before touching any of these areas.
 
 ---
 
+## Android Build
+
+**Always build with Java 17.** The system has Java 25 (Homebrew), but:
+- Gradle 9.0.0 removed `JvmVendorSpec.IBM_SEMERU` which Kotlin 2.1.20 uses → fails
+- Gradle 8.14.1 (latest 8.x) supports only up to Java 24 → fails with Java 25
+
+Working combination: **Gradle 8.14.1 + Java 17**.
+
+```bash
+JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+  npx react-native run-android
+```
+
+If daemons started with the wrong JVM cause network errors, stop them first:
+```bash
+JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+  ./android/gradlew --stop
+```
+
+---
+
 ## Phase 1 — Scaffold
 
 **rbenv required.** macOS system Ruby is 2.6 — too old for CocoaPods. Must use rbenv.
