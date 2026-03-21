@@ -86,11 +86,12 @@ ShareViewController.swift:
         ▼
 Main app receives orginbox://share via AppDelegate
         │
-AppDelegate.swift calls RNReceiveSharingIntentModule.application(_:open:options:)
+AppDelegate.swift calls RCTLinkingManager.application(_:open:options:)
         │
-JS listener fires in App.tsx with SharedItem data
+ReceiveSharingIntent JS callback fires in App.tsx (same getReceivedFiles
+call used on Android — no platform branch needed)
         │
-Navigate to SharePreviewScreen
+Navigate to SharePreviewScreen with items: SharedItem[]
 ```
 
 ---
@@ -107,7 +108,7 @@ launchMode="singleTask" ensures existing instance is reused
         │
 ReceiveSharingIntent.getReceivedFiles fires (or listener if already running)
         │
-Navigate to SharePreviewScreen
+Navigate to SharePreviewScreen with items: SharedItem[]
 ```
 
 ---

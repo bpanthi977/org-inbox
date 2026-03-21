@@ -62,13 +62,21 @@ On Android, `pickDirectory` returns `{uri: string}` directly (no bookmark field)
 
 ## Phase 4 — Android Share Intent
 
+**`getReceivedFiles` runs on BOTH platforms, not just Android.** Do NOT gate it
+behind `Platform.OS === 'android'`. The same call handles Android (AppState-based)
+and iOS (URL-scheme-triggered via AppDelegate → RCTLinkingManager).
+
 **`getReceivedFiles` manages its own AppState listener internally.** Do NOT add a
 separate `AppState` listener. The single call handles both initial launch and
 foreground shares. Calling it sets up the listener for the app's lifetime.
 
 **`initialShareConsumed` ref prevents double-navigation.** On mount, the callback
 fires once with initial share data. Subsequent shares while running also fire the
-same callback. The ref distinguishes them — see `App.tsx:52`.
+same callback. The ref distinguishes them — see `App.tsx`.
+
+**Callback receives `files: any[]` — map all of them.** For SEND_MULTIPLE the
+array has multiple entries. `files.map(toSharedItem)` → `SharedItem[]` and pass
+all to `SharePreviewScreen` via `items: SharedItem[]`.
 
 **`toSharedItem` URL detection:** `raw.weblink` is set for explicit URL shares.
 For `text/plain` that contains a URL, `raw.text` starts with `https?://` — detect
@@ -89,11 +97,12 @@ Constants (must be consistent across all files):
 **All Xcode setup is manual — see `docs/ios-xcode-setup.md`.**
 The Swift/plist/entitlements files are already in the repo at `ios/ShareExtension/`.
 
-**iOS share intent is handled entirely in native Swift (no RN JS in extension process).**
-`ShareViewController.swift` writes to `UserDefaults(suiteName: APP_GROUP)`, then
-opens the main app via `UIApplication.shared.open(URL("orginbox://share")!)`. The
-main app's `AppDelegate.swift` passes it to `RCTLinkingManager`, which fires the
-`ReceiveSharingIntent` JS listener.
+**The ShareExtension process has no RN JS.** `ShareViewController.swift` writes to
+`UserDefaults(suiteName: APP_GROUP)`, then opens the main app via
+`UIApplication.shared.open(URL("orginbox://share")!)`. The main app's
+`AppDelegate.swift` passes the URL to `RCTLinkingManager`, which triggers the
+`ReceiveSharingIntent` JS callback registered by `getReceivedFiles` in `App.tsx`
+(same code path as Android).
 
 ---
 
@@ -128,6 +137,26 @@ sharing intent callback (outside React tree).
 - No configured path → `Settings` screen with `showBanner={true}`
 - Has path + has initial share item → `SharePreview`
 - Has path + no share → `Settings` (app opened normally, not via share)
+
+---
+
+## Phase 8 — Edge Cases
+
+**Navigation uses `items: SharedItem[]`, not `item: SharedItem`.** The
+`SharePreview` route param is always an array. Single shares are `[item]`.
+
+**Save loop:** `SharePreviewScreen` iterates all items. For each: copy attachment
+(if needed) → format org entry → concatenate. One `appendToOrgFile` call at the
+end with the combined string. Note applies to `items[0]` only.
+
+**Large file warning threshold:** 50 MB (`50 * 1024 * 1024` bytes). Checked
+against `item.fileSize` (may be `undefined` if the library didn't provide it — the
+check uses `!== undefined`, so unknown sizes pass through without warning).
+
+**`@dr.pogodin/react-native-fs` has no default export.** Import named functions:
+```typescript
+import {appendFile, copyFile, exists, mkdir} from '@dr.pogodin/react-native-fs';
+```
 
 ---
 
