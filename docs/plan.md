@@ -7,7 +7,7 @@
 | Phase 1: Project scaffold | **DONE** |
 | Phase 2: Types and org formatter | **DONE** |
 | Phase 3: Settings screen and MMKV storage | **DONE** |
-| Phase 4: Android share intent | TODO |
+| Phase 4: Android share intent | **DONE** |
 | Phase 5: iOS share extension | TODO |
 | Phase 6: Preview screen and content components | TODO |
 | Phase 7: File storage and attachment handling | TODO |

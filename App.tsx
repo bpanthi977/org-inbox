@@ -74,7 +74,7 @@ function App(): React.JSX.Element {
       (_error: any) => {
         // No share data on this launch — normal startup, do nothing
       },
-      'org.orginbox',
+      'orginbox',
     );
   }, []);
 

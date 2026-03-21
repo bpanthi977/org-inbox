@@ -56,5 +56,18 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<!-- URL scheme so the Share Extension can open the main app -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>orginbox</string>
+			</array>
+		</dict>
+	</array>
+	<!-- App Group identifier (must match ShareExtension entitlements) -->
+	<key>AppGroupIdentifier</key>
+	<string>group.org.reactjs.native.example.OrgInbox</string>
 </dict>
 </plist>
