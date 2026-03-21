@@ -15,7 +15,7 @@ import type {SharedItem} from '../types';
 
 export type RootStackParamList = {
   Settings: {showBanner?: boolean} | undefined;
-  SharePreview: {item: SharedItem};
+  SharePreview: {items: SharedItem[]};
 };
 
 /** Ref used by App.tsx to navigate imperatively from the share intent listener. */
@@ -24,13 +24,13 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 interface Props {
-  initialShareItem?: SharedItem;
+  initialShareItems?: SharedItem[];
 }
 
-export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
+export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
   // If app launched from a share but no folder is configured, go to Settings first.
   const startOnSettings =
-    !initialShareItem || !Settings.hasConfiguredPath();
+    !initialShareItems?.length || !Settings.hasConfiguredPath();
 
   return (
     <NavigationContainer ref={navigationRef}>
@@ -51,12 +51,12 @@ export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
           {props => (
             <SettingsScreen
               showBanner={
-                !!initialShareItem && !Settings.hasConfiguredPath()
+                !!initialShareItems?.length && !Settings.hasConfiguredPath()
               }
               onConfigured={() => {
-                if (initialShareItem) {
+                if (initialShareItems?.length) {
                   props.navigation.replace('SharePreview', {
-                    item: initialShareItem,
+                    items: initialShareItems,
                   });
                 }
               }}
@@ -88,7 +88,7 @@ export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
           })}>
           {props => (
             <SharePreviewScreen
-              item={props.route.params.item}
+              items={props.route.params.items}
               onSave={() => props.navigation.goBack()}
               onCancel={() => props.navigation.goBack()}
             />

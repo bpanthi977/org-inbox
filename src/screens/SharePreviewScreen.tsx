@@ -1,4 +1,4 @@
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   View,
   Text,
@@ -18,25 +18,58 @@ import {copyAttachment} from '../services/attachmentHandler';
 import {Settings} from '../storage/settings';
 import type {SharedItem} from '../types';
 
+const LARGE_FILE_BYTES = 50 * 1024 * 1024; // 50 MB
+
+const FILE_TYPES = new Set<SharedItem['contentType']>(['image', 'video', 'audio', 'file']);
+
 interface Props {
-  item: SharedItem;
+  items: SharedItem[];
   onSave: () => void;
   onCancel: () => void;
 }
 
-export function SharePreviewScreen({item, onSave, onCancel}: Props): React.JSX.Element {
+export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.Element {
+  const primaryItem = items[0];
+  const extraCount = items.length - 1;
+
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  // pageTitle is fetched async by UrlPreview; we hold it here so orgFormatter can use it
-  const fetchedTitle = useRef<string | undefined>(item.pageTitle);
 
+  // pageTitle fetched async by UrlPreview for the primary item
   const handleTitleFetched = useCallback((title: string) => {
-    fetchedTitle.current = title;
-    // Mutate the item reference so orgFormatter picks it up
-    item.pageTitle = title;
-  }, [item]);
+    primaryItem.pageTitle = title;
+  }, [primaryItem]);
 
-  const handleSave = useCallback(async () => {
+  const doSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      let combinedEntries = '';
+      for (let i = 0; i < items.length; i++) {
+        const sharedItem = items[i];
+        // Note is attached to the first item only
+        const itemNote = i === 0 ? note : '';
+
+        let attachmentRelPath: string | undefined;
+        if (FILE_TYPES.has(sharedItem.contentType) && sharedItem.filePath) {
+          attachmentRelPath = await copyAttachment(sharedItem);
+        }
+
+        combinedEntries += formatOrgEntry(sharedItem, itemNote, attachmentRelPath);
+      }
+
+      await appendToOrgFile(combinedEntries);
+      onSave();
+    } catch (err: any) {
+      setSaving(false);
+      Alert.alert(
+        'Save failed',
+        err?.message ?? 'Could not write to the org file. Please check your folder settings.',
+        [{text: 'OK'}],
+      );
+    }
+  }, [items, note, onSave]);
+
+  const handleSave = useCallback(() => {
     if (saving) {return;}
 
     if (!Settings.hasConfiguredPath()) {
@@ -48,36 +81,24 @@ export function SharePreviewScreen({item, onSave, onCancel}: Props): React.JSX.E
       return;
     }
 
-    setSaving(true);
-    try {
-      // 1. Copy attachment if the item has a file
-      let attachmentRelPath: string | undefined;
-      const needsAttachment =
-        item.contentType === 'image' ||
-        item.contentType === 'video' ||
-        item.contentType === 'audio' ||
-        item.contentType === 'file';
-
-      if (needsAttachment && item.filePath) {
-        attachmentRelPath = await copyAttachment(item);
-      }
-
-      // 2. Format the org entry
-      const orgEntry = formatOrgEntry(item, note, attachmentRelPath);
-
-      // 3. Append to the .org file
-      await appendToOrgFile(orgEntry);
-
-      onSave();
-    } catch (err: any) {
-      setSaving(false);
+    const largeFile = items.find(
+      it => it.fileSize !== undefined && it.fileSize > LARGE_FILE_BYTES,
+    );
+    if (largeFile) {
+      const mb = Math.round((largeFile.fileSize! / (1024 * 1024)));
       Alert.alert(
-        'Save failed',
-        err?.message ?? 'Could not write to the org file. Please check your folder settings.',
-        [{text: 'OK'}],
+        'Large file',
+        `"${largeFile.fileName ?? 'This file'}" is ${mb} MB. Copy it to your org folder?`,
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {text: 'Copy', onPress: doSave},
+        ],
       );
+      return;
     }
-  }, [saving, item, note, onSave]);
+
+    doSave();
+  }, [saving, items, doSave]);
 
   return (
     <KeyboardAvoidingView
@@ -118,7 +139,15 @@ export function SharePreviewScreen({item, onSave, onCancel}: Props): React.JSX.E
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
 
-        <ContentPreview item={item} onTitleFetched={handleTitleFetched} />
+        <ContentPreview item={primaryItem} onTitleFetched={handleTitleFetched} />
+
+        {extraCount > 0 && (
+          <View style={styles.extraBadge}>
+            <Text style={styles.extraBadgeText}>
+              +{extraCount} more {extraCount === 1 ? 'item' : 'items'}
+            </Text>
+          </View>
+        )}
 
         <View style={styles.gap} />
 
@@ -164,4 +193,17 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   gap: {height: 16},
+  extraBadge: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#E5E5EA',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  extraBadgeText: {
+    fontSize: 13,
+    color: '#6C6C70',
+    fontWeight: '500',
+  },
 });

@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Platform, StatusBar, useColorScheme} from 'react-native';
+import {StatusBar, useColorScheme} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import ReceiveSharingIntent from 'react-native-receive-sharing-intent';
 import {RootNavigator, navigationRef} from './src/navigation/RootNavigator';
@@ -46,28 +46,28 @@ function toSharedItem(raw: any): SharedItem {
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
-  const [initialShareItem, setInitialShareItem] = useState<SharedItem | undefined>(
+  const [initialShareItems, setInitialShareItems] = useState<SharedItem[] | undefined>(
     undefined,
   );
   const initialShareConsumed = useRef(false);
 
   useEffect(() => {
-    if (Platform.OS !== 'android') {return;}
-
-    // getReceivedFiles sets up an AppState listener internally, so it handles
-    // both the initial launch-from-share and subsequent shares while running.
+    // Works on both Android and iOS.
+    // Android: fires immediately for launch-from-share, then on subsequent shares.
+    // iOS: AppDelegate passes orginbox:// URL to RCTLinkingManager → library reads
+    //      shared data from App Group UserDefaults.
     ReceiveSharingIntent.getReceivedFiles(
       (files: any[]) => {
         if (!files?.length) {return;}
-        const item = toSharedItem(files[0]);
+        const items = files.map(toSharedItem);
 
         if (!initialShareConsumed.current) {
-          // First share — set as initial item so RootNavigator picks it up
+          // First share — set as initial items so RootNavigator picks them up
           initialShareConsumed.current = true;
-          setInitialShareItem(item);
+          setInitialShareItems(items);
         } else {
           // Subsequent share while app is already running — navigate directly
-          navigationRef.navigate('SharePreview', {item});
+          navigationRef.navigate('SharePreview', {items});
         }
         ReceiveSharingIntent.clearReceivedFiles();
       },
@@ -78,12 +78,10 @@ function App(): React.JSX.Element {
     );
   }, []);
 
-  // iOS share intent is handled in Phase 5 (AppDelegate + URL scheme)
-
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <RootNavigator initialShareItem={initialShareItem} />
+      <RootNavigator initialShareItems={initialShareItems} />
     </SafeAreaProvider>
   );
 }

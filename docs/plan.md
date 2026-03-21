@@ -11,7 +11,7 @@
 | Phase 5: iOS share extension | **DONE** (files ready; see docs/ios-xcode-setup.md for manual Xcode steps) |
 | Phase 6: Preview screen and content components | **DONE** |
 | Phase 7: File storage and attachment handling | **DONE** |
-| Phase 8: Edge cases and polish | TODO |
+| Phase 8: Edge cases and polish | **DONE** |
 
 ---
 
