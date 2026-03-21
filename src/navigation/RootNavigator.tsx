@@ -1,43 +1,41 @@
 import React from 'react';
-import {TouchableOpacity} from 'react-native';
-import {NavigationContainer} from '@react-navigation/native';
+import {TouchableOpacity, Text, StyleSheet} from 'react-native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import {
   createNativeStackNavigator,
   type NativeStackNavigationProp,
 } from '@react-navigation/native-stack';
 import {SettingsScreen} from '../screens/SettingsScreen';
 import {SharePreviewScreen} from '../screens/SharePreviewScreen';
+import {Settings} from '../storage/settings';
 import type {SharedItem} from '../types';
 
 export type RootStackParamList = {
-  Settings: {showBanner?: boolean};
+  Settings: {showBanner?: boolean} | undefined;
   SharePreview: {item: SharedItem};
 };
+
+/** Ref used by App.tsx to navigate imperatively from the share intent listener. */
+export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 interface Props {
-  /** Initial item received from a share intent (if app was opened via share) */
   initialShareItem?: SharedItem;
 }
 
-function GearIcon({onPress}: {onPress: () => void}) {
-  return (
-    <TouchableOpacity onPress={onPress} hitSlop={8} accessibilityLabel="Settings">
-      {/* Simple ⚙ character — swap for an icon library in a later phase */}
-      <React.Fragment>
-        {/* Using Text as icon placeholder */}
-        <TouchableOpacity onPress={onPress} />
-      </React.Fragment>
-    </TouchableOpacity>
-  );
-}
-
 export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
+  // If app launched from a share but no folder is configured, go to Settings first.
+  const startOnSettings =
+    !initialShareItem || !Settings.hasConfiguredPath();
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
-        initialRouteName={initialShareItem ? 'SharePreview' : 'Settings'}
+        initialRouteName={startOnSettings ? 'Settings' : 'SharePreview'}
         screenOptions={{
           headerStyle: {backgroundColor: '#F2F2F7'},
           headerTitleStyle: {fontSize: 17, fontWeight: '600'},
@@ -46,15 +44,21 @@ export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
 
         <Stack.Screen
           name="Settings"
-          options={({navigation}: {navigation: NativeStackNavigationProp<RootStackParamList, 'Settings'>}) => ({
+          options={{
             title: 'org-inbox',
-            headerRight: () => null, // gear icon lives here when on SharePreview
-          })}>
+            headerRight: () => null,
+          }}>
           {props => (
             <SettingsScreen
-              {...props.route.params}
+              showBanner={
+                !!initialShareItem && !Settings.hasConfiguredPath()
+              }
               onConfigured={() => {
-                // If opened directly (not from share), nothing to navigate to
+                if (initialShareItem) {
+                  props.navigation.replace('SharePreview', {
+                    item: initialShareItem,
+                  });
+                }
               }}
             />
           )}
@@ -62,16 +66,23 @@ export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
 
         <Stack.Screen
           name="SharePreview"
-          options={({navigation}: {navigation: NativeStackNavigationProp<RootStackParamList, 'SharePreview'>}) => ({
+          options={({
+            navigation,
+          }: {
+            navigation: NativeStackNavigationProp<
+              RootStackParamList,
+              'SharePreview'
+            >;
+          }) => ({
             title: 'org-inbox',
-            headerLeft: () => null, // no back button — cancel is in the screen
+            headerLeft: () => null,
             headerRight: () => (
               <TouchableOpacity
-                onPress={() => navigation.navigate('Settings', {})}
+                onPress={() => navigation.navigate('Settings')}
                 hitSlop={8}
-                accessibilityLabel="Settings">
-                {/* ⚙ placeholder */}
-                <React.Fragment />
+                accessibilityLabel="Settings"
+                style={styles.gearButton}>
+                <Text style={styles.gearIcon}>⚙</Text>
               </TouchableOpacity>
             ),
           })}>
@@ -88,3 +99,8 @@ export function RootNavigator({initialShareItem}: Props): React.JSX.Element {
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  gearButton: {padding: 4},
+  gearIcon: {fontSize: 20, color: '#007AFF'},
+});

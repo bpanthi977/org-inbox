@@ -22,6 +22,48 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+
+        <!-- Share: plain text and URLs -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="text/plain" />
+        </intent-filter>
+
+        <!-- Share: images -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="image/*" />
+        </intent-filter>
+
+        <!-- Share: video -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="video/*" />
+        </intent-filter>
+
+        <!-- Share: audio -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="audio/*" />
+        </intent-filter>
+
+        <!-- Share: PDFs, docs, and other files -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="application/*" />
+        </intent-filter>
+
+        <!-- Share: multiple files of any type -->
+        <intent-filter>
+            <action android:name="android.intent.action.SEND_MULTIPLE" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:mimeType="*/*" />
+        </intent-filter>
       </activity>
     </application>
 </manifest>
