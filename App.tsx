@@ -55,9 +55,11 @@ function App(): React.JSX.Element {
     // Works on both Android and iOS.
     // Android: fires immediately for launch-from-share, then on subsequent shares.
     // iOS: AppDelegate passes orginbox:// URL to RCTLinkingManager → library reads
-    //      shared data from App Group UserDefaults.
+      //      shared data from App Group UserDefaults.
+      console.log("Registering");
     ReceiveSharingIntent.getReceivedFiles(
-      (files: any[]) => {
+	(files: any[]) => {
+	    console.log('Received files', files)  
         if (!files?.length) {return;}
         const items = files.map(toSharedItem);
 
@@ -69,10 +71,10 @@ function App(): React.JSX.Element {
           // Subsequent share while app is already running — navigate directly
           navigationRef.navigate('SharePreview', {items});
         }
-        ReceiveSharingIntent.clearReceivedFiles();
       },
       (_error: any) => {
-        // No share data on this launch — normal startup, do nothing
+          // No share data on this launch — normal startup, do nothing
+	  console.log("error on register", _error); 
       },
       'orginbox',
     );
