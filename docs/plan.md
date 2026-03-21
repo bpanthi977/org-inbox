@@ -9,8 +9,8 @@
 | Phase 3: Settings screen and MMKV storage | **DONE** |
 | Phase 4: Android share intent | **DONE** |
 | Phase 5: iOS share extension | **DONE** (files ready; see docs/ios-xcode-setup.md for manual Xcode steps) |
-| Phase 6: Preview screen and content components | TODO |
-| Phase 7: File storage and attachment handling | TODO |
+| Phase 6: Preview screen and content components | **DONE** |
+| Phase 7: File storage and attachment handling | **DONE** |
 | Phase 8: Edge cases and polish | TODO |
 
 ---

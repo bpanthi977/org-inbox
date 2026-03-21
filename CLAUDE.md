@@ -15,6 +15,9 @@ All detailed documentation lives in `docs/`:
 | `docs/plan.md` | Full implementation plan: phases, steps, library choices, architecture decisions |
 | `docs/architecture.md` | Architecture rationale, library justifications, data flow diagrams |
 | `docs/org-format.md` | The exact org-mode entry format the app produces |
+| `docs/gotchas.md` | Hard-won per-phase implementation details, API quirks, and non-obvious decisions |
+| `docs/phase7-implementation.md` | Phase 7 implementation notes: SAF-X and RNFS API signatures, approach for fileStorage and attachmentHandler |
+| `docs/ios-xcode-setup.md` | Manual Xcode steps for the iOS Share Extension (App Groups, entitlements, bundle IDs) |
 
 ## Documentation policy
 
