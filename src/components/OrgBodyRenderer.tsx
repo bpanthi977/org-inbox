@@ -5,6 +5,7 @@ import {
   Image,
   Linking,
   StyleSheet,
+  useColorScheme,
 } from 'react-native';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -242,9 +243,23 @@ function parseBlocks(body: string): Block[] {
   return blocks;
 }
 
+// ── Colors ────────────────────────────────────────────────────────────────────
+
+function makeBodyColors(dark: boolean) {
+  return {
+    text: dark ? '#EBEBF5' : '#3C3C43',
+    tableBorder: dark ? '#38383A' : '#C6C6C8',
+    tableHeaderBg: dark ? '#2C2C2E' : '#F2F2F7',
+    tableSeparator: dark ? '#EBEBF5' : '#3C3C43',
+    imageBg: dark ? '#2C2C2E' : '#F2F2F7',
+  };
+}
+
+type BodyColors = ReturnType<typeof makeBodyColors>;
+
 // ── Rendering helpers ─────────────────────────────────────────────────────────
 
-function renderSpans(spans: Span[]): React.ReactNode[] {
+function renderSpans(spans: Span[], colors: BodyColors): React.ReactNode[] {
   return spans.map((span, i) => {
     if (span.kind === 'url-link') {
       return (
@@ -256,47 +271,49 @@ function renderSpans(spans: Span[]): React.ReactNode[] {
         </Text>
       );
     }
-    return <Text key={i}>{span.value}</Text>;
+    return <Text key={i} style={{color: colors.text}}>{span.value}</Text>;
   });
 }
 
 function ImageBlock({
   filename,
   basePath,
+  colors,
 }: {
   filename: string;
   basePath: string | undefined;
+  colors: BodyColors;
 }): React.JSX.Element {
   if (!basePath) {
-    return <Text style={styles.fileLinkText}>🏞 {filename}</Text>;
+    return <Text style={[styles.fileLinkText, {color: colors.text}]}>🏞 {filename}</Text>;
   }
 
   return (
     <Image
       source={{uri: buildImageUri(basePath, filename)}}
-      style={styles.image}
+      style={[styles.image, {backgroundColor: colors.imageBg}]}
       resizeMode="contain"
     />
   );
 }
 
-function TableBlock({rows}: {rows: TableRow[]}): React.JSX.Element {
+function TableBlock({rows, colors}: {rows: TableRow[]; colors: BodyColors}): React.JSX.Element {
   const dataRows = rows.filter(r => r.kind !== 'separator') as Array<{kind: 'header' | 'data'; cells: string[]}>;
   const colCount = dataRows.length > 0 ? Math.max(...dataRows.map(r => r.cells.length)) : 0;
   if (colCount === 0) {return <View />;}
 
   return (
-    <View style={styles.table}>
+    <View style={[styles.table, {borderColor: colors.tableBorder}]}>
       {rows.map((row, ri) => {
         if (row.kind === 'separator') {
-          return <View key={ri} style={styles.tableSeparator} />;
+          return <View key={ri} style={[styles.tableSeparator, {backgroundColor: colors.tableSeparator}]} />;
         }
         const isHeader = row.kind === 'header';
         return (
-          <View key={ri} style={[styles.tableRow, isHeader && styles.tableHeaderRow]}>
+          <View key={ri} style={[styles.tableRow, {borderBottomColor: colors.tableBorder}, isHeader && {backgroundColor: colors.tableHeaderBg}]}>
             {Array.from({length: colCount}).map((_, ci) => (
-              <View key={ci} style={styles.tableCell}>
-                <Text style={[styles.tableCellText, isHeader && styles.tableHeaderText]}>
+              <View key={ci} style={[styles.tableCell, {borderRightColor: colors.tableBorder}]}>
+                <Text style={[styles.tableCellText, {color: colors.text}, isHeader && styles.tableHeaderText]}>
                   {row.cells[ci] ?? ''}
                 </Text>
               </View>
@@ -316,6 +333,9 @@ interface Props {
 }
 
 export function OrgBodyRenderer({body, attachmentsBasePath}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
+  const colors = makeBodyColors(isDark);
+
   const blocks = useMemo(() => {
     try {
       return parseBlocks(body.trim());
@@ -330,8 +350,8 @@ export function OrgBodyRenderer({body, attachmentsBasePath}: Props): React.JSX.E
         switch (block.kind) {
           case 'paragraph':
             return (
-              <Text key={i} style={styles.paragraph}>
-                {renderSpans(block.spans)}
+              <Text key={i} style={[styles.paragraph, {color: colors.text}]}>
+                {renderSpans(block.spans, colors)}
               </Text>
             );
 
@@ -340,8 +360,8 @@ export function OrgBodyRenderer({body, attachmentsBasePath}: Props): React.JSX.E
               <View key={i} style={styles.list}>
                 {block.items.map((spans, j) => (
                   <View key={j} style={styles.listItem}>
-                    <Text style={styles.bullet}>•</Text>
-                    <Text style={styles.listItemText}>{renderSpans(spans)}</Text>
+                    <Text style={[styles.bullet, {color: colors.text}]}>•</Text>
+                    <Text style={[styles.listItemText, {color: colors.text}]}>{renderSpans(spans, colors)}</Text>
                   </View>
                 ))}
               </View>
@@ -352,24 +372,24 @@ export function OrgBodyRenderer({body, attachmentsBasePath}: Props): React.JSX.E
               <View key={i} style={styles.list}>
                 {block.items.map((spans, j) => (
                   <View key={j} style={styles.listItem}>
-                    <Text style={styles.bullet}>{j + 1}.</Text>
-                    <Text style={styles.listItemText}>{renderSpans(spans)}</Text>
+                    <Text style={[styles.bullet, {color: colors.text}]}>{j + 1}.</Text>
+                    <Text style={[styles.listItemText, {color: colors.text}]}>{renderSpans(spans, colors)}</Text>
                   </View>
                 ))}
               </View>
             );
 
           case 'table':
-            return <TableBlock key={i} rows={block.rows} />;
+            return <TableBlock key={i} rows={block.rows} colors={colors} />;
 
           case 'image':
             return (
-              <ImageBlock key={i} filename={block.filename} basePath={attachmentsBasePath} />
+              <ImageBlock key={i} filename={block.filename} basePath={attachmentsBasePath} colors={colors} />
             );
 
           case 'file-link':
             return (
-              <Text key={i} style={styles.fileLinkText}>
+              <Text key={i} style={[styles.fileLinkText, {color: colors.text}]}>
                 📎 {block.label ?? block.filename}
               </Text>
             );

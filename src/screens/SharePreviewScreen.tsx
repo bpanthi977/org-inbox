@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  useColorScheme,
 } from 'react-native';
 import {ContentPreview} from '../components/ContentPreview';
 import {NoteInput} from '../components/NoteInput';
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   const primaryItem = items[0];
   const extraCount = items.length - 1;
 
@@ -100,14 +102,20 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
     doSave();
   }, [saving, items, doSave]);
 
+  const bg = isDark ? '#1C1C1E' : '#F2F2F7';
+  const headerTitleColor = isDark ? '#FFFFFF' : '#1C1C1E';
+  const headerBorderColor = isDark ? '#38383A' : '#C6C6C8';
+  const extraBadgeBg = isDark ? '#3A3A3C' : '#E5E5EA';
+  const extraBadgeTextColor = isDark ? '#EBEBF5' : '#6C6C70';
+
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, {backgroundColor: bg}]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={88}>
 
       {/* ── Header ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, {backgroundColor: bg, borderBottomColor: headerBorderColor}]}>
         <TouchableOpacity
           onPress={onCancel}
           disabled={saving}
@@ -117,7 +125,7 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
           <Text style={[styles.headerButton, styles.cancelButton]}>Cancel</Text>
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Save to org</Text>
+        <Text style={[styles.headerTitle, {color: headerTitleColor}]}>Save to org</Text>
 
         <TouchableOpacity
           onPress={handleSave}
@@ -142,8 +150,8 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
         <ContentPreview item={primaryItem} onTitleFetched={handleTitleFetched} />
 
         {extraCount > 0 && (
-          <View style={styles.extraBadge}>
-            <Text style={styles.extraBadgeText}>
+          <View style={[styles.extraBadge, {backgroundColor: extraBadgeBg}]}>
+            <Text style={[styles.extraBadgeText, {color: extraBadgeTextColor}]}>
               +{extraCount} more {extraCount === 1 ? 'item' : 'items'}
             </Text>
           </View>

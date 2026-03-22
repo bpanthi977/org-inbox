@@ -4,6 +4,7 @@ import {
   TextInput,
   Text,
   StyleSheet,
+  useColorScheme,
 } from 'react-native';
 
 interface Props {
@@ -13,18 +14,19 @@ interface Props {
 }
 
 export function NoteInput({value, onChangeText, placeholder}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   const inputRef = useRef<TextInput>(null);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>NOTE</Text>
+    <View style={[styles.container, {backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF'}]}>
+      <Text style={[styles.label, {color: isDark ? '#8E8E93' : '#6C6C70'}]}>NOTE</Text>
       <TextInput
         ref={inputRef}
-        style={styles.input}
+        style={[styles.input, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder ?? 'Add a note… (optional)'}
-        placeholderTextColor="#C7C7CC"
+        placeholderTextColor={isDark ? '#48484A' : '#C7C7CC'}
         multiline
         textAlignVertical="top"
         returnKeyType="default"

@@ -7,6 +7,7 @@ import {
   Platform,
   Alert,
   ScrollView,
+  useColorScheme,
 } from 'react-native';
 import {openDocumentTree} from 'react-native-saf-x';
 import {pickDirectory} from '@react-native-documents/picker';
@@ -19,6 +20,8 @@ interface Props {
 }
 
 export function SettingsScreen({onConfigured, showBanner}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
+
   const [displayPath, setDisplayPath] = useState<string | undefined>(
     Settings.getDisplayPath(),
   );
@@ -75,9 +78,16 @@ export function SettingsScreen({onConfigured, showBanner}: Props): React.JSX.Ele
     }
   };
 
+  const bg = isDark ? '#1C1C1E' : '#F2F2F7';
+  const cardBg = isDark ? '#2C2C2E' : '#FFFFFF';
+  const primaryText = isDark ? '#FFFFFF' : '#1C1C1E';
+  const secondaryText = isDark ? '#8E8E93' : '#8E8E93';
+  const codeColor = isDark ? '#EBEBF5' : '#636366';
+  const dividerColor = isDark ? '#38383A' : '#C6C6C8';
+
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, {backgroundColor: bg}]}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
 
@@ -94,17 +104,17 @@ export function SettingsScreen({onConfigured, showBanner}: Props): React.JSX.Ele
 
       <Text style={styles.sectionLabel}>ORG FILE LOCATION</Text>
 
-      <View style={styles.card}>
+      <View style={[styles.card, {backgroundColor: cardBg}]}>
         {displayPath ? (
           <>
-            <Text style={styles.pathLabel}>Current folder</Text>
-            <Text style={styles.pathValue} numberOfLines={3}>
+            <Text style={[styles.pathLabel, {color: secondaryText}]}>Current folder</Text>
+            <Text style={[styles.pathValue, {color: primaryText}]} numberOfLines={3}>
               {displayPath}
             </Text>
-            <View style={styles.divider} />
+            <View style={[styles.divider, {backgroundColor: dividerColor}]} />
           </>
         ) : (
-          <Text style={styles.noPathText}>No folder selected yet.</Text>
+          <Text style={[styles.noPathText, {color: secondaryText}]}>No folder selected yet.</Text>
         )}
 
         <TouchableOpacity
@@ -123,11 +133,11 @@ export function SettingsScreen({onConfigured, showBanner}: Props): React.JSX.Ele
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.hint}>
+      <Text style={[styles.hint, {color: secondaryText}]}>
         Captures are saved as org entries in{' '}
-        <Text style={styles.code}>inbox.org</Text> inside the chosen folder.
+        <Text style={[styles.code, {color: codeColor}]}>inbox.org</Text> inside the chosen folder.
         Attachments go into an{' '}
-        <Text style={styles.code}>attachments/</Text> subfolder.
+        <Text style={[styles.code, {color: codeColor}]}>attachments/</Text> subfolder.
       </Text>
     </ScrollView>
   );

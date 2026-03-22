@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   PanResponder,
+  useColorScheme,
   type ListRenderItemInfo,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
@@ -16,6 +17,20 @@ import {loadInboxEntries, formatOrgDateForDisplay, deleteInboxEntry, type Parsed
 import {OrgBodyRenderer} from '../components/OrgBodyRenderer';
 import {Settings} from '../storage/settings';
 import type {ContentType} from '../types';
+
+// ── Colors ────────────────────────────────────────────────────────────────────
+
+function makeColors(dark: boolean) {
+  return {
+    background: dark ? '#1C1C1E' : '#F2F2F7',
+    card: dark ? '#2C2C2E' : '#FFFFFF',
+    primaryText: dark ? '#FFFFFF' : '#000000',
+    secondaryText: '#8E8E93',
+    separator: dark ? '#38383A' : '#C6C6C8',
+    chevron: dark ? '#636366' : '#C7C7CC',
+    bodyText: dark ? '#EBEBF5' : '#3C3C43',
+  };
+}
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -36,12 +51,14 @@ function OrgEntry({
   onPress,
   onDelete,
   attachmentsBasePath,
+  colors,
 }: {
   item: ParsedEntry;
   isExpanded: boolean;
   onPress: () => void;
   onDelete: () => void;
   attachmentsBasePath: string | undefined;
+  colors: ReturnType<typeof makeColors>;
 }) {
   const icon = CONTENT_ICONS[item.contentType];
   const dateStr = formatOrgDateForDisplay(item.created);
@@ -83,18 +100,18 @@ function OrgEntry({
         </TouchableOpacity>
       </View>
       <Animated.View
-        style={[styles.row, {transform: [{translateX}]}]}
+        style={[styles.row, {backgroundColor: colors.card, transform: [{translateX}]}]}
         {...panResponder.panHandlers}>
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
           <View style={styles.rowHeader}>
             <Text style={styles.icon}>{icon}</Text>
             <View style={styles.rowMeta}>
-              <Text style={styles.heading} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.heading, {color: colors.primaryText}]} numberOfLines={1} ellipsizeMode="tail">
                 {item.heading}
               </Text>
-              {dateStr ? <Text style={styles.date}>{dateStr}</Text> : null}
+              {dateStr ? <Text style={[styles.date, {color: colors.secondaryText}]}>{dateStr}</Text> : null}
             </View>
-            <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
+            <Text style={[styles.chevron, {color: colors.chevron}, isExpanded && styles.chevronExpanded]}>
               ›
             </Text>
           </View>
@@ -112,6 +129,9 @@ function OrgEntry({
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export function InboxScreen(): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
+  const colors = makeColors(isDark);
+
   const attachmentsBasePath =
     Platform.OS === 'android'
       ? Settings.getAndroidSafUri()
@@ -158,6 +178,7 @@ export function InboxScreen(): React.JSX.Element {
         isExpanded={isExpanded}
         item={item}
         attachmentsBasePath={attachmentsBasePath}
+        colors={colors}
         onPress={() => {
           setExpandedIndex(isExpanded ? null : index);
         }}
@@ -171,7 +192,7 @@ export function InboxScreen(): React.JSX.Element {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, {backgroundColor: colors.background}]}>
         <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
@@ -179,7 +200,7 @@ export function InboxScreen(): React.JSX.Element {
 
   if (error) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, {backgroundColor: colors.background}]}>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={load}>
           <Text style={styles.retryLabel}>Retry</Text>
@@ -190,7 +211,7 @@ export function InboxScreen(): React.JSX.Element {
 
   if (entries.length === 0) {
     return (
-      <View style={styles.centered}>
+      <View style={[styles.centered, {backgroundColor: colors.background}]}>
         <Text style={styles.emptyText}>
           {'No notes yet.\nShare something to get started.'}
         </Text>
@@ -203,8 +224,9 @@ export function InboxScreen(): React.JSX.Element {
       data={entries}
       keyExtractor={(_, i) => String(i)}
       renderItem={renderItem}
-      contentContainerStyle={styles.list}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      style={{backgroundColor: colors.background}}
+      contentContainerStyle={[styles.list, {backgroundColor: colors.background}]}
+      ItemSeparatorComponent={() => <View style={[styles.separator, {backgroundColor: colors.separator}]} />}
     />
   );
 }

@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {TouchableOpacity, Text, StyleSheet, BackHandler} from 'react-native';
+import {TouchableOpacity, Text, StyleSheet, BackHandler, useColorScheme} from 'react-native';
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -30,6 +30,9 @@ interface Props {
 }
 
 export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
+  const headerBg = isDark ? '#1C1C1E' : '#F2F2F7';
+  const headerTint = isDark ? '#FFFFFF' : '#000000';
   const [navigatorReady, setNavigatorReady] = useState(false);
 
   useEffect(() => {
@@ -50,8 +53,9 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
-          headerStyle: {backgroundColor: '#F2F2F7'},
-          headerTitleStyle: {fontSize: 17, fontWeight: '600'},
+          headerStyle: {backgroundColor: headerBg},
+          headerTitleStyle: {fontSize: 17, fontWeight: '600', color: headerTint},
+          headerTintColor: headerTint,
           headerShadowVisible: false,
         }}>
 
