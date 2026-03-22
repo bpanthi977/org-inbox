@@ -205,7 +205,7 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
               snapToInterval={CARD_WIDTH + CARD_GAP}
               decelerationRate="fast"
               contentContainerStyle={{paddingHorizontal: 16, gap: CARD_GAP}}
-              style={styles.carousel}
+              style={[styles.carousel, {backgroundColor: bg}]}
               renderItem={({item, index}) => (
                 <View style={{width: CARD_WIDTH}}>
                   <ContentPreview
