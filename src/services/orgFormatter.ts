@@ -65,12 +65,12 @@ function formatBody(item: SharedItem, attachmentRelPath?: string): string {
  *
  * Output format:
  *   * Heading
- *     :PROPERTIES:
- *     :CREATED: [YYYY-MM-DD Day HH:MM]
- *     :END:
- *     <body>
- *
- *     <optional note>
+ *   :PROPERTIES:
+ *   :CREATED: [YYYY-MM-DD Day HH:MM]
+ *   :END:
+ *   <body>
+ *		 
+ *   <optional note>
  *
  */
 export function formatOrgEntry(
@@ -91,22 +91,17 @@ export function formatOrgEntry(
 
   const lines: string[] = [
     `* ${heading}`,
-    '  :PROPERTIES:',
-    `  :CREATED: ${created}`,
-    '  :END:',
+    ':PROPERTIES:',
+    `:CREATED: ${created}`,
+    ':END:',
     indentedBody,
   ];
 
   const trimmedNote = note.trim();
-  if (trimmedNote) {
-    lines.push('');
-    // Indent note lines with 2 spaces
-    const indentedNote = trimmedNote
-      .split('\n')
-      .map(line => `  ${line}`)
-      .join('\n');
-    lines.push(indentedNote);
-  }
+	if (trimmedNote) {
+		lines.push('');
+		lines.push(trimmedNote);
+	}
 
   // Trailing blank line to separate entries
   lines.push('');
