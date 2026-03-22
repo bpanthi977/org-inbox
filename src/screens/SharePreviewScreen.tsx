@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {ContentPreview} from '../components/ContentPreview';
+import {ShimmerBlock} from '../components/ShimmerBlock';
 import {NoteInput} from '../components/NoteInput';
 import {formatOrgEntry, formatOrgEntryMulti, deriveHeading} from '../services/orgFormatter';
 import {appendToOrgFile} from '../services/fileStorage';
@@ -45,6 +46,9 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
   const titleEditedByUser = useRef(false);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(
+    () => primaryItem.contentType === 'url' && !primaryItem.pageTitle,
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const viewabilityConfig = useRef({itemVisiblePercentThreshold: 50});
   const onViewableItemsChanged = useRef(({viewableItems}: any) => {
@@ -55,6 +59,7 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
 
   // pageTitle fetched async by UrlPreview for the primary item
   const handleTitleFetched = useCallback((fetchedTitle: string) => {
+    setIsLoadingPreview(false);
     primaryItem.pageTitle = fetchedTitle;
     if (!titleEditedByUser.current) {
       setTitle(deriveHeading(primaryItem));
@@ -194,7 +199,11 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
         keyboardShouldPersistTaps="handled">
 
         {items.length === 1 ? (
-          <ContentPreview item={primaryItem} onTitleFetched={handleTitleFetched} />
+          <ContentPreview
+            item={primaryItem}
+            onTitleFetched={handleTitleFetched}
+            onTitleFetchComplete={() => setIsLoadingPreview(false)}
+          />
         ) : (
           <>
             <FlatList
@@ -227,22 +236,29 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
 
         <View style={styles.gap} />
 
-        <View style={[styles.inputCard, {backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF'}]}>
-          <Text style={[styles.inputLabel, {color: isDark ? '#8E8E93' : '#6C6C70'}]}>TITLE</Text>
-          <TextInput
-            style={[styles.titleInput, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]}
-            value={title}
-            onChangeText={text => {
-              titleEditedByUser.current = true;
-              setTitle(text);
-            }}
-            placeholder="Entry title"
-            placeholderTextColor={isDark ? '#48484A' : '#C7C7CC'}
-            returnKeyType="done"
-            autoCapitalize="sentences"
-            autoCorrect
-          />
-        </View>
+        {isLoadingPreview ? (
+          <View style={[styles.shimmerCard, {backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF'}]}>
+            <ShimmerBlock width={40} height={10} />
+            <ShimmerBlock width="80%" height={14} style={styles.shimmerMt} />
+          </View>
+        ) : (
+          <View style={[styles.inputCard, {backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF'}]}>
+            <Text style={[styles.inputLabel, {color: isDark ? '#8E8E93' : '#6C6C70'}]}>TITLE</Text>
+            <TextInput
+              style={[styles.titleInput, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]}
+              value={title}
+              onChangeText={text => {
+                titleEditedByUser.current = true;
+                setTitle(text);
+              }}
+              placeholder="Entry title"
+              placeholderTextColor={isDark ? '#48484A' : '#C7C7CC'}
+              returnKeyType="done"
+              autoCapitalize="sentences"
+              autoCorrect
+            />
+          </View>
+        )}
 
         <View style={styles.gap} />
 
@@ -343,6 +359,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 14,
   },
+  shimmerCard: {borderRadius: 12, padding: 14, gap: 0},
+  shimmerMt: {marginTop: 8},
   carousel: {marginHorizontal: -16},
   dots: {flexDirection: 'row', justifyContent: 'center', marginTop: 8, gap: 6},
   dot: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#C7C7CC'},

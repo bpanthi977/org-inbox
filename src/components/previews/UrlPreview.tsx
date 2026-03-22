@@ -7,9 +7,11 @@ interface Props {
   item: SharedItem;
   /** Called when the title has been fetched so the parent can use it for the org heading */
   onTitleFetched?: (title: string) => void;
+  /** Called when the title fetch completes (success or failure) */
+  onTitleFetchComplete?: () => void;
 }
 
-export function UrlPreview({item, onTitleFetched}: Props): React.JSX.Element {
+export function UrlPreview({item, onTitleFetched, onTitleFetchComplete}: Props): React.JSX.Element {
   const isDark = useColorScheme() === 'dark';
   const [title, setTitle] = useState<string | undefined>(item.pageTitle);
   const [loading, setLoading] = useState(!item.pageTitle && !!item.weblink);
@@ -19,12 +21,16 @@ export function UrlPreview({item, onTitleFetched}: Props): React.JSX.Element {
     let cancelled = false;
 
     fetchPageTitle(item.weblink).then(fetched => {
-      if (cancelled || !fetched) {return;}
-      setTitle(fetched);
-      setLoading(false);
-      onTitleFetched?.(fetched);
+      if (cancelled) {return;}
+      if (fetched) {
+        setTitle(fetched);
+        onTitleFetched?.(fetched);
+      }
     }).finally(() => {
-      if (!cancelled) {setLoading(false);}
+      if (!cancelled) {
+        setLoading(false);
+        onTitleFetchComplete?.();
+      }
     });
 
     return () => { cancelled = true; };

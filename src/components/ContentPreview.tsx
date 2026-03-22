@@ -9,12 +9,13 @@ import {FilePreview} from './previews/FilePreview';
 interface Props {
   item: SharedItem;
   onTitleFetched?: (title: string) => void;
+  onTitleFetchComplete?: () => void;
 }
 
-export function ContentPreview({item, onTitleFetched}: Props): React.JSX.Element {
+export function ContentPreview({item, onTitleFetched, onTitleFetchComplete}: Props): React.JSX.Element {
   switch (item.contentType) {
     case 'url':
-      return <UrlPreview item={item} onTitleFetched={onTitleFetched} />;
+      return <UrlPreview item={item} onTitleFetched={onTitleFetched} onTitleFetchComplete={onTitleFetchComplete} />;
     case 'text':
       return <TextPreview item={item} />;
     case 'image':
