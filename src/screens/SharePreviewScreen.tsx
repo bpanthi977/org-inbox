@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import {ContentPreview} from '../components/ContentPreview';
 import {NoteInput} from '../components/NoteInput';
-import {formatOrgEntry, deriveHeading} from '../services/orgFormatter';
+import {formatOrgEntry, formatOrgEntryMulti, deriveHeading} from '../services/orgFormatter';
 import {appendToOrgFile} from '../services/fileStorage';
 import {copyAttachment} from '../services/attachmentHandler';
 import {Settings} from '../storage/settings';
@@ -51,21 +51,50 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
   const doSave = useCallback(async () => {
     setSaving(true);
     try {
-      let combinedEntries = '';
-      for (let i = 0; i < items.length; i++) {
-        const sharedItem = items[i];
-        // Note is attached to the first item only
-        const itemNote = i === 0 ? note : '';
+      let orgText: string;
 
-        let attachmentRelPath: string | undefined;
-        if (FILE_TYPES.has(sharedItem.contentType) && sharedItem.filePath) {
-          attachmentRelPath = await copyAttachment(sharedItem);
+      if (items.length > 1) {
+        // Multiple items → single combined entry
+        let paths: (string | undefined)[];
+        try {
+          paths = await Promise.all(
+            items.map(item =>
+              FILE_TYPES.has(item.contentType) && item.filePath
+                ? copyAttachment(item)
+                : Promise.resolve(undefined),
+            ),
+          );
+        } catch (err: any) {
+          setSaving(false);
+          Alert.alert(
+            'Copy failed',
+            err?.message ?? 'Could not copy attachment to your org folder.',
+            [{text: 'OK'}],
+          );
+          return;
         }
-
-        combinedEntries += formatOrgEntry(sharedItem, itemNote, attachmentRelPath, i === 0 ? title : undefined);
+        orgText = formatOrgEntryMulti(items, paths, note, title);
+      } else {
+        // Single item → existing behaviour
+        const item = items[0];
+        let attachmentRelPath: string | undefined;
+        if (FILE_TYPES.has(item.contentType) && item.filePath) {
+          try {
+            attachmentRelPath = await copyAttachment(item);
+          } catch (err: any) {
+            setSaving(false);
+            Alert.alert(
+              'Copy failed',
+              err?.message ?? 'Could not copy attachment to your org folder.',
+              [{text: 'OK'}],
+            );
+            return;
+          }
+        }
+        orgText = formatOrgEntry(item, note, attachmentRelPath, title);
       }
 
-      await appendToOrgFile(combinedEntries);
+      await appendToOrgFile(orgText);
       onSave();
     } catch (err: any) {
       setSaving(false);

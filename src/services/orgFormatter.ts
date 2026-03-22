@@ -65,6 +65,44 @@ function formatBody(item: SharedItem, attachmentRelPath?: string): string {
 }
 
 /**
+ * Formats multiple SharedItems (any content types) into a single org entry.
+ * Each item contributes one indented body line.
+ */
+export function formatOrgEntryMulti(
+  items: SharedItem[],
+  attachmentRelPaths: (string | undefined)[],
+  note: string,
+  customTitle?: string,
+  now: Date = new Date(),
+): string {
+  const heading = customTitle?.trim() || deriveHeading(items[0]);
+  const created = formatOrgDate(now);
+
+  const bodyLines = items.map((item, i) =>
+    `  ${formatBody(item, attachmentRelPaths[i])}`,
+  );
+
+  const lines: string[] = [
+    `* ${heading}`,
+    ':PROPERTIES:',
+    `:CREATED: ${created}`,
+    ':END:',
+    ...bodyLines,
+  ];
+
+  const trimmedNote = note.trim();
+  if (trimmedNote) {
+    lines.push('');
+    lines.push(trimmedNote);
+  }
+
+  lines.push('');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+/**
  * Formats a SharedItem into an org-mode capture entry string.
  *
  * Output format:
