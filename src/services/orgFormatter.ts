@@ -13,7 +13,7 @@ export function formatOrgDate(date: Date): string {
 }
 
 /** Derives the org heading from the shared item. */
-function deriveHeading(item: SharedItem): string {
+export function deriveHeading(item: SharedItem): string {
   switch (item.contentType) {
     case 'url': {
       if (item.pageTitle) {
@@ -81,9 +81,10 @@ export function formatOrgEntry(
   item: SharedItem,
   note: string,
   attachmentRelPath?: string,
+  customTitle?: string,
   now: Date = new Date(),
 ): string {
-  const heading = deriveHeading(item);
+  const heading = customTitle?.trim() || deriveHeading(item);
   const body = formatBody(item, attachmentRelPath);
   const created = formatOrgDate(now);
 

@@ -1,7 +1,8 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
@@ -13,7 +14,7 @@ import {
 } from 'react-native';
 import {ContentPreview} from '../components/ContentPreview';
 import {NoteInput} from '../components/NoteInput';
-import {formatOrgEntry} from '../services/orgFormatter';
+import {formatOrgEntry, deriveHeading} from '../services/orgFormatter';
 import {appendToOrgFile} from '../services/fileStorage';
 import {copyAttachment} from '../services/attachmentHandler';
 import {Settings} from '../storage/settings';
@@ -34,12 +35,17 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
   const primaryItem = items[0];
   const extraCount = items.length - 1;
 
+  const [title, setTitle] = useState(() => deriveHeading(primaryItem));
+  const titleEditedByUser = useRef(false);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   // pageTitle fetched async by UrlPreview for the primary item
-  const handleTitleFetched = useCallback((title: string) => {
-    primaryItem.pageTitle = title;
+  const handleTitleFetched = useCallback((fetchedTitle: string) => {
+    primaryItem.pageTitle = fetchedTitle;
+    if (!titleEditedByUser.current) {
+      setTitle(deriveHeading(primaryItem));
+    }
   }, [primaryItem]);
 
   const doSave = useCallback(async () => {
@@ -56,7 +62,7 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
           attachmentRelPath = await copyAttachment(sharedItem);
         }
 
-        combinedEntries += formatOrgEntry(sharedItem, itemNote, attachmentRelPath);
+        combinedEntries += formatOrgEntry(sharedItem, itemNote, attachmentRelPath, i === 0 ? title : undefined);
       }
 
       await appendToOrgFile(combinedEntries);
@@ -69,7 +75,7 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
         [{text: 'OK'}],
       );
     }
-  }, [items, note, onSave]);
+  }, [items, note, title, onSave]);
 
   const handleSave = useCallback(() => {
     if (saving) {return;}
@@ -159,6 +165,25 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
 
         <View style={styles.gap} />
 
+        <View style={[styles.inputCard, {backgroundColor: isDark ? '#2C2C2E' : '#FFFFFF'}]}>
+          <Text style={[styles.inputLabel, {color: isDark ? '#8E8E93' : '#6C6C70'}]}>TITLE</Text>
+          <TextInput
+            style={[styles.titleInput, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]}
+            value={title}
+            onChangeText={text => {
+              titleEditedByUser.current = true;
+              setTitle(text);
+            }}
+            placeholder="Entry title"
+            placeholderTextColor={isDark ? '#48484A' : '#C7C7CC'}
+            returnKeyType="done"
+            autoCapitalize="sentences"
+            autoCorrect
+          />
+        </View>
+
+        <View style={styles.gap} />
+
         <NoteInput value={note} onChangeText={setNote} />
 
       </ScrollView>
@@ -201,6 +226,23 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   gap: {height: 16},
+  inputCard: {
+    borderRadius: 12,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  titleInput: {
+    fontSize: 15,
+    lineHeight: 22,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
   extraBadge: {
     marginTop: 8,
     paddingHorizontal: 12,
