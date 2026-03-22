@@ -3,8 +3,9 @@ import {
   copyFile as safCopyFile,
   exists as safExists,
   mkdir as safMkdir,
+  unlink as safUnlink,
 } from 'react-native-saf-x';
-import {copyFile as rnfsCopyFile, exists as rnfsExists, mkdir as rnfsMkdir} from '@dr.pogodin/react-native-fs';
+import {copyFile as rnfsCopyFile, exists as rnfsExists, mkdir as rnfsMkdir, unlink as rnfsUnlink} from '@dr.pogodin/react-native-fs';
 import {Settings} from '../storage/settings';
 import type {SharedItem} from '../types';
 
@@ -102,5 +103,24 @@ export async function copyAttachment(item: SharedItem): Promise<string> {
     );
     await rnfsCopyFile(srcPath, `${attachDir}/${filename}`);
     return `attachments/${filename}`;
+  }
+}
+
+/**
+ * Deletes a file from the attachments/ subfolder.
+ * relativePath is the org-link path, e.g. "attachments/photo.jpg".
+ *
+ * Throws on failure — caller is responsible for error handling.
+ */
+export async function deleteAttachment(relativePath: string): Promise<void> {
+  if (Platform.OS === 'android') {
+    const treeUri = Settings.getAndroidSafUri();
+    if (!treeUri) {return;}
+    await safUnlink(`${treeUri}/${relativePath}`);
+  } else {
+    const folderUri = Settings.getIosFolderUri();
+    if (!folderUri) {return;}
+    const folderPath = folderUri.replace(/^file:\/\//, '');
+    await rnfsUnlink(`${folderPath}/${relativePath}`);
   }
 }

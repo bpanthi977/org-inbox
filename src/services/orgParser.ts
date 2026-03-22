@@ -4,6 +4,7 @@ import {readFile as rnfsReadFile} from '@dr.pogodin/react-native-fs';
 import {Settings} from '../storage/settings';
 import type {ContentType} from '../types';
 import {writeOrgFile} from './fileStorage';
+import {deleteAttachment} from './attachmentHandler';
 
 const ORG_FILENAME = 'inbox.org';
 
@@ -169,10 +170,29 @@ export async function deleteInboxEntry(entry: ParsedEntry): Promise<void> {
       ? headingIndices[fileIndex + 1]
       : lines.length;
 
+  const deletedLines = lines.slice(start, end);
   const remaining = [...lines.slice(0, start), ...lines.slice(end)];
   const content =
     remaining.join('\n').trimEnd() + (remaining.length ? '\n' : '');
   await writeOrgFile(content);
+
+  // Delete any attachments that are no longer referenced by remaining entries
+  const deletedText = deletedLines.join('\n');
+  const remainingText = remaining.join('\n');
+  const re = /\[\[file:(attachments\/[^\]]+)\]\]/g;
+  const seen = new Set<string>();
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(deletedText)) !== null) {
+    const relPath = match[1];
+    if (!seen.has(relPath) && !remainingText.includes(relPath)) {
+      seen.add(relPath);
+      try {
+        await deleteAttachment(relPath);
+      } catch (e) {
+        console.warn(`[org-inbox] Failed to delete attachment ${relPath}:`, e);
+      }
+    }
+  }
 }
 
 // ── Date formatting ───────────────────────────────────────────────────────────
