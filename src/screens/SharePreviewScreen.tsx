@@ -5,12 +5,14 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   useColorScheme,
+  useWindowDimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {ContentPreview} from '../components/ContentPreview';
@@ -33,13 +35,23 @@ interface Props {
 
 export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.Element {
   const isDark = useColorScheme() === 'dark';
+  const {width: screenWidth} = useWindowDimensions();
+  const CARD_GAP = 8;
+  const CARD_WIDTH = screenWidth - 32 - 20; // screen - outer padding(32) - peek(20)
+
   const primaryItem = items[0];
-  const extraCount = items.length - 1;
 
   const [title, setTitle] = useState(() => deriveHeading(primaryItem));
   const titleEditedByUser = useRef(false);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const viewabilityConfig = useRef({itemVisiblePercentThreshold: 50});
+  const onViewableItemsChanged = useRef(({viewableItems}: any) => {
+    if (viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index ?? 0);
+    }
+  });
 
   // pageTitle fetched async by UrlPreview for the primary item
   const handleTitleFetched = useCallback((fetchedTitle: string) => {
@@ -141,8 +153,6 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
   const bg = isDark ? '#1C1C1E' : '#F2F2F7';
   const headerTitleColor = isDark ? '#FFFFFF' : '#1C1C1E';
   const headerBorderColor = isDark ? '#38383A' : '#C6C6C8';
-  const extraBadgeBg = isDark ? '#3A3A3C' : '#E5E5EA';
-  const extraBadgeTextColor = isDark ? '#EBEBF5' : '#6C6C70';
 
   return (
     <KeyboardAvoidingView
@@ -183,14 +193,36 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
 
-        <ContentPreview item={primaryItem} onTitleFetched={handleTitleFetched} />
-
-        {extraCount > 0 && (
-          <View style={[styles.extraBadge, {backgroundColor: extraBadgeBg}]}>
-            <Text style={[styles.extraBadgeText, {color: extraBadgeTextColor}]}>
-              +{extraCount} more {extraCount === 1 ? 'item' : 'items'}
-            </Text>
-          </View>
+        {items.length === 1 ? (
+          <ContentPreview item={primaryItem} onTitleFetched={handleTitleFetched} />
+        ) : (
+          <>
+            <FlatList
+              horizontal
+              data={items}
+              keyExtractor={(_, i) => String(i)}
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CARD_WIDTH + CARD_GAP}
+              decelerationRate="fast"
+              contentContainerStyle={{paddingHorizontal: 16, gap: CARD_GAP}}
+              style={styles.carousel}
+              renderItem={({item, index}) => (
+                <View style={{width: CARD_WIDTH}}>
+                  <ContentPreview
+                    item={item}
+                    onTitleFetched={index === 0 ? handleTitleFetched : undefined}
+                  />
+                </View>
+              )}
+              onViewableItemsChanged={onViewableItemsChanged.current}
+              viewabilityConfig={viewabilityConfig.current}
+            />
+            <View style={styles.dots}>
+              {items.map((_, i) => (
+                <View key={i} style={[styles.dot, i === currentIndex && styles.dotActive]} />
+              ))}
+            </View>
+          </>
         )}
 
         <View style={styles.gap} />
@@ -311,17 +343,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 14,
   },
-  extraBadge: {
-    marginTop: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#E5E5EA',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  extraBadgeText: {
-    fontSize: 13,
-    color: '#6C6C70',
-    fontWeight: '500',
-  },
+  carousel: {marginHorizontal: -16},
+  dots: {flexDirection: 'row', justifyContent: 'center', marginTop: 8, gap: 6},
+  dot: {width: 6, height: 6, borderRadius: 3, backgroundColor: '#C7C7CC'},
+  dotActive: {backgroundColor: '#007AFF'},
 });
