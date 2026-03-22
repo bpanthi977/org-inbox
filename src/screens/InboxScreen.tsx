@@ -4,11 +4,14 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   StyleSheet,
   Platform,
   Animated,
   PanResponder,
+  LayoutAnimation,
+  UIManager,
   useColorScheme,
   type ListRenderItemInfo,
 } from 'react-native';
@@ -17,6 +20,10 @@ import {loadInboxEntries, formatOrgDateForDisplay, deleteInboxEntry, type Parsed
 import {OrgBodyRenderer} from '../components/OrgBodyRenderer';
 import {Settings} from '../storage/settings';
 import type {ContentType} from '../types';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 // ── Colors ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +37,26 @@ function makeColors(dark: boolean) {
     chevron: dark ? '#636366' : '#C7C7CC',
     bodyText: dark ? '#EBEBF5' : '#3C3C43',
   };
+}
+
+// ── Relative time ─────────────────────────────────────────────────────────────
+
+function formatRelativeTime(orgDate: string | undefined): string {
+  if (!orgDate) {return '';}
+  const m = orgDate.match(/\[(\d{4})-(\d{2})-(\d{2})\s+\w+(?:\s+(\d{2}):(\d{2}))?\]/);
+  if (!m) {return formatOrgDateForDisplay(orgDate);}
+  const [, yyyy, mo, dd, hh = '0', min = '0'] = m;
+  const date = new Date(parseInt(yyyy, 10), parseInt(mo, 10) - 1, parseInt(dd, 10), parseInt(hh, 10), parseInt(min, 10));
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60_000);
+  const diffH = Math.floor(diffMs / 3_600_000);
+  const diffD = Math.floor(diffMs / 86_400_000);
+  if (diffMin < 1) {return 'Just now';}
+  if (diffMin < 60) {return `${diffMin}m ago`;}
+  if (diffH < 24) {return `${diffH}h ago`;}
+  if (diffD === 1) {return 'Yesterday';}
+  if (diffD < 7) {return `${diffD}d ago`;}
+  return formatOrgDateForDisplay(orgDate);
 }
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -61,8 +88,9 @@ function OrgEntry({
   colors: ReturnType<typeof makeColors>;
 }) {
   const icon = CONTENT_ICONS[item.contentType];
-  const dateStr = formatOrgDateForDisplay(item.created);
+  const dateStr = formatRelativeTime(item.created);
   const translateX = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -92,37 +120,46 @@ function OrgEntry({
     onDelete();
   };
 
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 0}).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {toValue: 1, useNativeDriver: true, speed: 20, bounciness: 4}).start();
+  };
+
   return (
-    <View style={styles.rowContainer}>
-      <View style={styles.deleteAction}>
-        <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-          <Text style={styles.deleteLabel}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-      <Animated.View
-        style={[styles.row, {backgroundColor: colors.card, transform: [{translateX}]}]}
-        {...panResponder.panHandlers}>
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-          <View style={styles.rowHeader}>
-            <Text style={styles.icon}>{icon}</Text>
-            <View style={styles.rowMeta}>
-              <Text style={[styles.heading, {color: colors.primaryText}]} numberOfLines={1} ellipsizeMode="tail">
-                {item.heading}
+    <Animated.View style={[styles.cardShadow, {backgroundColor: colors.card, transform: [{scale: scaleAnim}]}]}>
+      <View style={styles.rowContainer}>
+        <View style={styles.deleteAction}>
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+            <Text style={styles.deleteLabel}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+        <Animated.View
+          style={[styles.row, {backgroundColor: colors.card, transform: [{translateX}]}]}
+          {...panResponder.panHandlers}>
+          <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
+            <View style={styles.rowHeader}>
+              <Text style={styles.icon}>{icon}</Text>
+              <View style={styles.rowMeta}>
+                <Text style={[styles.heading, {color: colors.primaryText}]} numberOfLines={1} ellipsizeMode="tail">
+                  {item.heading}
+                </Text>
+                {dateStr ? <Text style={[styles.date, {color: colors.secondaryText}]}>{dateStr}</Text> : null}
+              </View>
+              <Text style={[styles.chevron, {color: colors.chevron}, isExpanded && styles.chevronExpanded]}>
+                ›
               </Text>
-              {dateStr ? <Text style={[styles.date, {color: colors.secondaryText}]}>{dateStr}</Text> : null}
             </View>
-            <Text style={[styles.chevron, {color: colors.chevron}, isExpanded && styles.chevronExpanded]}>
-              ›
-            </Text>
-          </View>
-          {isExpanded && item.body ? (
-            <View style={styles.body}>
-              <OrgBodyRenderer body={item.body} attachmentsBasePath={attachmentsBasePath} />
-            </View>
-          ) : null}
-        </TouchableOpacity>
-      </Animated.View>
-    </View>
+            {isExpanded && item.body ? (
+              <View style={styles.body}>
+                <OrgBodyRenderer body={item.body} attachmentsBasePath={attachmentsBasePath} />
+              </View>
+            ) : null}
+          </Pressable>
+        </Animated.View>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -180,6 +217,7 @@ export function InboxScreen(): React.JSX.Element {
         attachmentsBasePath={attachmentsBasePath}
         colors={colors}
         onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setExpandedIndex(isExpanded ? null : index);
         }}
         onDelete={() => handleDelete(item, index)}
@@ -226,7 +264,6 @@ export function InboxScreen(): React.JSX.Element {
       renderItem={renderItem}
       style={{backgroundColor: colors.background}}
       contentContainerStyle={[styles.list, {backgroundColor: colors.background}]}
-      ItemSeparatorComponent={() => <View style={[styles.separator, {backgroundColor: colors.separator}]} />}
     />
   );
 }
@@ -243,7 +280,17 @@ const styles = StyleSheet.create({
   },
   list: {
     backgroundColor: '#F2F2F7',
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  cardShadow: {
+    borderRadius: 12,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 2,
   },
   row: {
     backgroundColor: '#FFFFFF',
@@ -289,13 +336,9 @@ const styles = StyleSheet.create({
     color: '#3C3C43',
     lineHeight: 18,
   },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#C6C6C8',
-    marginLeft: 52,
-  },
   rowContainer: {
     overflow: 'hidden',
+    borderRadius: 12,
   },
   deleteAction: {
     position: 'absolute',

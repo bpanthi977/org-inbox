@@ -12,6 +12,7 @@ import {
   StyleSheet,
   useColorScheme,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {ContentPreview} from '../components/ContentPreview';
 import {NoteInput} from '../components/NoteInput';
 import {formatOrgEntry, formatOrgEntryMulti, deriveHeading} from '../services/orgFormatter';
@@ -171,7 +172,7 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
           {saving ? (
             <ActivityIndicator size="small" color="#007AFF" />
           ) : (
-            <Text style={[styles.headerButton, styles.saveButton]}>Save</Text>
+            <Text style={[styles.headerButton, styles.headerSaveText]}>Save</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -216,6 +217,23 @@ export function SharePreviewScreen({items, onSave, onCancel}: Props): React.JSX.
         <NoteInput value={note} onChangeText={setNote} />
 
       </ScrollView>
+
+      {/* ── Save footer ── */}
+      <SafeAreaView edges={['bottom']} style={[styles.footer, {backgroundColor: bg, borderTopColor: headerBorderColor}]}>
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={saving}
+          activeOpacity={0.85}
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          accessibilityRole="button"
+          accessibilityLabel="Save">
+          {saving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.saveButtonText}>Save to org</Text>
+          )}
+        </TouchableOpacity>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
@@ -245,10 +263,31 @@ const styles = StyleSheet.create({
   cancelButton: {
     color: '#FF3B30',
   },
-  saveButton: {
+  headerSaveText: {
     color: '#007AFF',
     fontWeight: '600',
     textAlign: 'right',
+  },
+  footer: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  saveButton: {
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
   },
   scrollContent: {
     padding: 16,
