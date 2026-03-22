@@ -93,7 +93,7 @@ const AppController = {
 function App(): React.JSX.Element {
 	const isDarkMode = useColorScheme() === 'dark';
 	const [sharedItems, setSharedItems] = useState<SharedItem[] | undefined>()
-	console.log("App", {sharedItems});
+	console.log("App", {sharedItems, isDarkMode});
 	useEffect(() => {
 		AppController.share_intents.initialize();
 		return AppController.share_intents.addListener((items: SharedItem[]) => {

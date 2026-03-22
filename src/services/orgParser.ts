@@ -3,6 +3,7 @@ import {readFile as safReadFile} from 'react-native-saf-x';
 import {readFile as rnfsReadFile} from '@dr.pogodin/react-native-fs';
 import {Settings} from '../storage/settings';
 import type {ContentType} from '../types';
+import {writeOrgFile} from './fileStorage';
 
 const ORG_FILENAME = 'inbox.org';
 
@@ -132,6 +133,46 @@ export async function loadInboxEntries(): Promise<ParsedEntry[]> {
   const text = await readOrgFile();
   if (!text) {return [];}
   return parseOrgText(text);
+}
+
+/**
+ * Deletes a single entry from inbox.org by matching its heading + :CREATED: date.
+ * Safe against external reordering — does not assume file order matches display order.
+ */
+export async function deleteInboxEntry(entry: ParsedEntry): Promise<void> {
+  const text = await readOrgFile();
+  if (!text) {return;}
+  const lines = text.split('\n');
+
+  const headingIndices: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\* /.test(lines[i])) {headingIndices.push(i);}
+  }
+
+  let fileIndex = -1;
+  for (let h = 0; h < headingIndices.length; h++) {
+    const start = headingIndices[h];
+    const end = h + 1 < headingIndices.length ? headingIndices[h + 1] : lines.length;
+    const section = lines.slice(start, end);
+    const heading = section[0].replace(/^\* /, '').trim();
+    const created = extractCreated(section);
+    if (heading === entry.heading && created === entry.created) {
+      fileIndex = h;
+      break;
+    }
+  }
+  if (fileIndex === -1) {return;} // already deleted or not found
+
+  const start = headingIndices[fileIndex];
+  const end =
+    fileIndex + 1 < headingIndices.length
+      ? headingIndices[fileIndex + 1]
+      : lines.length;
+
+  const remaining = [...lines.slice(0, start), ...lines.slice(end)];
+  const content =
+    remaining.join('\n').trimEnd() + (remaining.length ? '\n' : '');
+  await writeOrgFile(content);
 }
 
 // ── Date formatting ───────────────────────────────────────────────────────────

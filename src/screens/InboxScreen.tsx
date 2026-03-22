@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  Animated,
+  PanResponder,
   type ListRenderItemInfo,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
-import {loadInboxEntries, formatOrgDateForDisplay, type ParsedEntry} from '../services/orgParser';
+import {loadInboxEntries, formatOrgDateForDisplay, deleteInboxEntry, type ParsedEntry} from '../services/orgParser';
 import {OrgBodyRenderer} from '../components/OrgBodyRenderer';
 import {Settings} from '../storage/settings';
 import type {ContentType} from '../types';
@@ -26,43 +28,84 @@ const CONTENT_ICONS: Record<ContentType, string> = {
   file: '📎',
 };
 
+const DELETE_WIDTH = 80;
+
 function OrgEntry({
   item,
   isExpanded,
   onPress,
+  onDelete,
   attachmentsBasePath,
 }: {
   item: ParsedEntry;
   isExpanded: boolean;
   onPress: () => void;
+  onDelete: () => void;
   attachmentsBasePath: string | undefined;
 }) {
   const icon = CONTENT_ICONS[item.contentType];
   const dateStr = formatOrgDateForDisplay(item.created);
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 5 && Math.abs(g.dx) > Math.abs(g.dy),
+      onPanResponderMove: (_, g) => {
+        translateX.setValue(Math.min(0, g.dx));
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dx < -60) {
+          Animated.spring(translateX, {
+            toValue: -DELETE_WIDTH,
+            useNativeDriver: true,
+          }).start();
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    }),
+  ).current;
+
+  const handleDelete = () => {
+    Animated.spring(translateX, {toValue: 0, useNativeDriver: true}).start();
+    onDelete();
+  };
 
   return (
-    <TouchableOpacity
-      style={styles.row}
-      onPress={onPress}
-      activeOpacity={0.7}>
-      <View style={styles.rowHeader}>
-        <Text style={styles.icon}>{icon}</Text>
-        <View style={styles.rowMeta}>
-          <Text style={styles.heading} numberOfLines={1} ellipsizeMode="tail">
-            {item.heading}
-          </Text>
-          {dateStr ? <Text style={styles.date}>{dateStr}</Text> : null}
-        </View>
-        <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
-          ›
-        </Text>
+    <View style={styles.rowContainer}>
+      <View style={styles.deleteAction}>
+        <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+          <Text style={styles.deleteLabel}>Delete</Text>
+        </TouchableOpacity>
       </View>
-      {isExpanded && item.body ? (
-        <View style={styles.body}>
-          <OrgBodyRenderer body={item.body} attachmentsBasePath={attachmentsBasePath} />
-        </View>
-      ) : null}
-    </TouchableOpacity>
+      <Animated.View
+        style={[styles.row, {transform: [{translateX}]}]}
+        {...panResponder.panHandlers}>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+          <View style={styles.rowHeader}>
+            <Text style={styles.icon}>{icon}</Text>
+            <View style={styles.rowMeta}>
+              <Text style={styles.heading} numberOfLines={1} ellipsizeMode="tail">
+                {item.heading}
+              </Text>
+              {dateStr ? <Text style={styles.date}>{dateStr}</Text> : null}
+            </View>
+            <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
+              ›
+            </Text>
+          </View>
+          {isExpanded && item.body ? (
+            <View style={styles.body}>
+              <OrgBodyRenderer body={item.body} attachmentsBasePath={attachmentsBasePath} />
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -92,6 +135,15 @@ export function InboxScreen(): React.JSX.Element {
     }
   }, []);
 
+  const handleDelete = useCallback(async (entry: ParsedEntry, index: number) => {
+    try {
+      await deleteInboxEntry(entry);
+      setEntries(prev => prev.filter((_, i) => i !== index));
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to delete entry');
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       load();
@@ -99,19 +151,20 @@ export function InboxScreen(): React.JSX.Element {
   );
 
   // ── Render helpers ──────────────────────────────────────────────────────────
-	function renderItem({item, index}: ListRenderItemInfo<ParsedEntry>) {
-		const isExpanded = expandedIndex === index;
-		return (
-			<OrgEntry
-				isExpanded={isExpanded}
-				item={item}
-				attachmentsBasePath={attachmentsBasePath}
-				onPress={() => {
-					setExpandedIndex(isExpanded ? null : index);
-				}}
-			/>
-		);
-	}
+  function renderItem({item, index}: ListRenderItemInfo<ParsedEntry>) {
+    const isExpanded = expandedIndex === index;
+    return (
+      <OrgEntry
+        isExpanded={isExpanded}
+        item={item}
+        attachmentsBasePath={attachmentsBasePath}
+        onPress={() => {
+          setExpandedIndex(isExpanded ? null : index);
+        }}
+        onDelete={() => handleDelete(item, index)}
+      />
+    );
+  }
 
 
   // ── States ──────────────────────────────────────────────────────────────────
@@ -218,6 +271,30 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: '#C6C6C8',
     marginLeft: 52,
+  },
+  rowContainer: {
+    overflow: 'hidden',
+  },
+  deleteAction: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: DELETE_WIDTH,
+    backgroundColor: '#FF3B30',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButton: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteLabel: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
   emptyText: {
     fontSize: 16,
