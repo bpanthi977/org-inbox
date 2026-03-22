@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Platform,
   type ListRenderItemInfo,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 import {loadInboxEntries, formatOrgDateForDisplay, type ParsedEntry} from '../services/orgParser';
+import {OrgBodyRenderer} from '../components/OrgBodyRenderer';
+import {Settings} from '../storage/settings';
 import type {ContentType} from '../types';
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -23,14 +26,17 @@ const CONTENT_ICONS: Record<ContentType, string> = {
   file: '📎',
 };
 
-function OrgBody({body}: {body: string}) {
-	return (
-		<Text style={styles.body}>{body}</Text>
-	)
-}
-
-function OrgEntry({item, isExpanded, onPress}: {item: ParsedEntry, isExpanded: boolean, onPress: () => void}) {
-
+function OrgEntry({
+  item,
+  isExpanded,
+  onPress,
+  attachmentsBasePath,
+}: {
+  item: ParsedEntry;
+  isExpanded: boolean;
+  onPress: () => void;
+  attachmentsBasePath: string | undefined;
+}) {
   const icon = CONTENT_ICONS[item.contentType];
   const dateStr = formatOrgDateForDisplay(item.created);
 
@@ -48,10 +54,14 @@ function OrgEntry({item, isExpanded, onPress}: {item: ParsedEntry, isExpanded: b
           {dateStr ? <Text style={styles.date}>{dateStr}</Text> : null}
         </View>
         <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
-																																							 ›
+          ›
         </Text>
       </View>
-      {isExpanded && item.body ? (<OrgBody body={item.body}></OrgBody>) : null}
+      {isExpanded && item.body ? (
+        <View style={styles.body}>
+          <OrgBodyRenderer body={item.body} attachmentsBasePath={attachmentsBasePath} />
+        </View>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -59,6 +69,11 @@ function OrgEntry({item, isExpanded, onPress}: {item: ParsedEntry, isExpanded: b
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export function InboxScreen(): React.JSX.Element {
+  const attachmentsBasePath =
+    Platform.OS === 'android'
+      ? Settings.getAndroidSafUri()
+      : Settings.getIosFolderUri()?.replace(/^file:\/\//, '');
+
   const [entries, setEntries] = useState<ParsedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -90,11 +105,12 @@ export function InboxScreen(): React.JSX.Element {
 			<OrgEntry
 				isExpanded={isExpanded}
 				item={item}
-				onPress={() => { 
-					setExpandedIndex(isExpanded ? null : index)
-				}}>
-			</OrgEntry>
-		) 
+				attachmentsBasePath={attachmentsBasePath}
+				onPress={() => {
+					setExpandedIndex(isExpanded ? null : index);
+				}}
+			/>
+		);
 	}
 
 
