@@ -91,6 +91,7 @@ function OrgEntry({
   const dateStr = formatRelativeTime(item.created);
   const translateX = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -116,8 +117,13 @@ function OrgEntry({
   ).current;
 
   const handleDelete = () => {
-    Animated.spring(translateX, {toValue: 0, useNativeDriver: true}).start();
-    onDelete();
+    Animated.parallel([
+      Animated.timing(translateX, {toValue: -500, duration: 250, useNativeDriver: true}),
+      Animated.timing(opacityAnim, {toValue: 0, duration: 200, useNativeDriver: true}),
+    ]).start(() => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      onDelete();
+    });
   };
 
   const handlePressIn = () => {
@@ -128,7 +134,7 @@ function OrgEntry({
   };
 
   return (
-    <Animated.View style={[styles.cardShadow, {backgroundColor: colors.card, transform: [{scale: scaleAnim}]}]}>
+    <Animated.View style={[styles.cardShadow, {backgroundColor: colors.card, opacity: opacityAnim, transform: [{scale: scaleAnim}]}]}>
       <View style={styles.rowContainer}>
         <View style={styles.deleteAction}>
           <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
@@ -250,8 +256,10 @@ export function InboxScreen(): React.JSX.Element {
   if (entries.length === 0) {
     return (
       <View style={[styles.centered, {backgroundColor: colors.background}]}>
+        <Text style={styles.emptyIcon}>📥</Text>
+        <Text style={[styles.emptyTitle, {color: colors.primaryText}]}>Nothing here yet</Text>
         <Text style={styles.emptyText}>
-          {'No notes yet.\nShare something to get started.'}
+          {'Share a link, text, or file\nfrom any app to get started.'}
         </Text>
       </View>
     );
@@ -361,11 +369,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#8E8E93',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   errorText: {
     fontSize: 15,
