@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, useColorScheme} from 'react-native';
 import type {SharedItem} from '../../types';
 
 interface Props {
@@ -8,17 +8,18 @@ interface Props {
 
 /** Generic preview for audio, PDFs, documents, and any other file type. */
 export function FilePreview({item}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   const icon = iconForType(item);
   const ext = extFromFilename(item.fileName);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.iconBox}>
+    <View style={[styles.container, {backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7'}]}>
+      <View style={[styles.iconBox, {backgroundColor: isDark ? '#3A3A3C' : '#E5E5EA'}]}>
         <Text style={styles.iconText}>{icon}</Text>
         {ext && <Text style={styles.ext}>{ext}</Text>}
       </View>
       <View style={styles.meta}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={[styles.name, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]} numberOfLines={2}>
           {item.fileName ?? 'File'}
         </Text>
         {item.mimeType && (
@@ -59,7 +60,6 @@ function formatSize(bytes: number): string {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -70,7 +70,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 8,
-    backgroundColor: '#E5E5EA',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -92,7 +91,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1C1C1E',
   },
   mime: {
     fontSize: 12,

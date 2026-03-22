@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, ScrollView, StyleSheet} from 'react-native';
+import {View, Text, TouchableOpacity, ScrollView, StyleSheet, useColorScheme} from 'react-native';
 import type {SharedItem} from '../../types';
 
 const COLLAPSED_LINES = 12;
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export function TextPreview({item}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   const text = item.text ?? '';
   const lines = text.split('\n');
   const isLong = lines.length > COLLAPSED_LINES;
@@ -18,13 +19,13 @@ export function TextPreview({item}: Props): React.JSX.Element {
     isLong && !expanded ? lines.slice(0, COLLAPSED_LINES).join('\n') + '…' : text;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7'}]}>
       <ScrollView
         style={styles.scroll}
         scrollEnabled={expanded}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled>
-        <Text style={styles.text} selectable>
+        <Text style={[styles.text, {color: isDark ? '#EBEBF5' : '#1C1C1E'}]} selectable>
           {displayText}
         </Text>
       </ScrollView>
@@ -44,7 +45,6 @@ export function TextPreview({item}: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     overflow: 'hidden',
   },
@@ -54,7 +54,6 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 15,
-    color: '#1C1C1E',
     lineHeight: 22,
   },
   toggle: {

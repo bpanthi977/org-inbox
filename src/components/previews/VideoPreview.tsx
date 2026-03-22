@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import {View, Text, StyleSheet, useColorScheme} from 'react-native';
 import type {SharedItem} from '../../types';
 
 interface Props {
@@ -8,13 +8,14 @@ interface Props {
 
 /** Shows a static placeholder — video is not played inline to keep the UI fast. */
 export function VideoPreview({item}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7'}]}>
       <View style={styles.thumb}>
         <Text style={styles.icon}>▶</Text>
       </View>
       <View style={styles.meta}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={[styles.name, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]} numberOfLines={2}>
           {item.fileName ?? 'Video'}
         </Text>
         {item.fileSize != null && (
@@ -33,7 +34,6 @@ function formatSize(bytes: number): string {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -59,7 +59,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1C1C1E',
   },
   size: {
     fontSize: 13,

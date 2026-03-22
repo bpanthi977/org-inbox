@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Image, Text, StyleSheet} from 'react-native';
+import {View, Image, Text, StyleSheet, useColorScheme} from 'react-native';
 import type {SharedItem} from '../../types';
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
 }
 
 export function ImagePreview({item}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   const uri = item.filePath
     ? item.filePath.startsWith('file://') || item.filePath.startsWith('content://')
       ? item.filePath
@@ -14,7 +15,7 @@ export function ImagePreview({item}: Props): React.JSX.Element {
     : undefined;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7'}]}>
       {uri ? (
         <Image
           source={{uri}}
@@ -38,7 +39,6 @@ export function ImagePreview({item}: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     overflow: 'hidden',
     alignItems: 'center',

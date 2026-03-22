@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text, ActivityIndicator, StyleSheet} from 'react-native';
+import {View, Text, ActivityIndicator, StyleSheet, useColorScheme} from 'react-native';
 import {fetchPageTitle} from '../../services/titleFetcher';
 import type {SharedItem} from '../../types';
 
@@ -10,6 +10,7 @@ interface Props {
 }
 
 export function UrlPreview({item, onTitleFetched}: Props): React.JSX.Element {
+  const isDark = useColorScheme() === 'dark';
   const [title, setTitle] = useState<string | undefined>(item.pageTitle);
   const [loading, setLoading] = useState(!item.pageTitle && !!item.weblink);
 
@@ -35,7 +36,7 @@ export function UrlPreview({item, onTitleFetched}: Props): React.JSX.Element {
   })();
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, {backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7'}]}>
       <View style={styles.hostRow}>
         <View style={styles.favicon} />
         <Text style={styles.hostname} numberOfLines={1}>{hostname}</Text>
@@ -47,7 +48,7 @@ export function UrlPreview({item, onTitleFetched}: Props): React.JSX.Element {
           <Text style={styles.loadingText}>Fetching title…</Text>
         </View>
       ) : (
-        <Text style={styles.title} numberOfLines={3}>
+        <Text style={[styles.title, {color: isDark ? '#FFFFFF' : '#1C1C1E'}]} numberOfLines={3}>
           {title ?? displayUrl}
         </Text>
       )}
@@ -59,7 +60,6 @@ export function UrlPreview({item, onTitleFetched}: Props): React.JSX.Element {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#F2F2F7',
     borderRadius: 10,
     padding: 14,
     gap: 6,
@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1C1C1E',
     lineHeight: 22,
   },
   url: {
