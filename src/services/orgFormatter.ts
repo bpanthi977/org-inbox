@@ -48,7 +48,11 @@ function formatBody(item: SharedItem, attachmentRelPath?: string): string {
     case 'url': {
       const url = item.weblink ?? '';
       const title = item.pageTitle ?? url;
-      return `[[${url}][${title}]]`;
+			if (item.pageTitle) {
+				return `[[${url}][${title}]]`;
+			} else {
+				return `[[${url}]]`;
+			}
     }
     case 'text':
       return item.text ?? '';
