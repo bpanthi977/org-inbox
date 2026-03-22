@@ -16,6 +16,7 @@ import {
   type ListRenderItemInfo,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {loadInboxEntries, formatOrgDateForDisplay, deleteInboxEntry, type ParsedEntry} from '../services/orgParser';
 import {OrgBodyRenderer} from '../components/OrgBodyRenderer';
 import {Settings} from '../storage/settings';
@@ -62,12 +63,12 @@ function formatRelativeTime(orgDate: string | undefined): string {
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
 const CONTENT_ICONS: Record<ContentType, string> = {
-  url: '🌐',
-  text: '📝',
-  image: '🏞',
-  video: '🎬',
-  audio: '🎵',
-  file: '📎',
+  url: 'globe-outline',
+  text: 'document-text-outline',
+  image: 'image-outline',
+  video: 'film-outline',
+  audio: 'musical-notes-outline',
+  file: 'attach-outline',
 };
 
 const DELETE_WIDTH = 80;
@@ -146,7 +147,7 @@ function OrgEntry({
           {...panResponder.panHandlers}>
           <Pressable onPress={onPress} onPressIn={handlePressIn} onPressOut={handlePressOut}>
             <View style={styles.rowHeader}>
-              <Text style={styles.icon}>{icon}</Text>
+              <Ionicons name={icon} size={20} color={colors.secondaryText} style={styles.icon} />
               <View style={styles.rowMeta}>
                 <Text style={[styles.heading, {color: colors.primaryText}]} numberOfLines={1} ellipsizeMode="tail">
                   {item.heading}
@@ -310,7 +311,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   icon: {
-    fontSize: 18,
     marginRight: 10,
     width: 26,
     textAlign: 'center',

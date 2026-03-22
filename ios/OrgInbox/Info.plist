@@ -66,6 +66,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Ionicons.ttf</string>
+	</array>
 	<!-- App Group identifier (must match ShareExtension entitlements) -->
 	<key>AppGroupIdentifier</key>
 	<string>group.org.reactjs.native.example.OrgInbox</string>
