@@ -269,7 +269,7 @@ export function InboxScreen(): React.JSX.Element {
   return (
     <FlatList
       data={entries}
-      keyExtractor={(_, i) => String(i)}
+      keyExtractor={(item) => item.id}
       renderItem={renderItem}
       style={{backgroundColor: colors.background}}
       contentContainerStyle={[styles.list, {backgroundColor: colors.background}]}

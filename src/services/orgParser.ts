@@ -9,10 +9,20 @@ import {deleteAttachment} from './attachmentHandler';
 const ORG_FILENAME = 'inbox.org';
 
 export interface ParsedEntry {
+  id: string; // stable hash of heading + created + body for use as list key
   heading: string;
   created: string | undefined; // raw org date string e.g. "[2026-03-21 Sat 14:30]"
   body: string;
   contentType: ContentType;
+}
+
+function simpleHash(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+    h = h >>> 0;
+  }
+  return h.toString(16);
 }
 
 // ── File reading ─────────────────────────────────────────────────────────────
@@ -117,7 +127,8 @@ function parseOrgText(text: string): ParsedEntry[] {
     const body = extractBody(section);
     const contentType = detectContentType(body);
 
-    entries.push({heading, created, body, contentType});
+    const id = simpleHash(heading + (created ?? '') + body);
+    entries.push({id, heading, created, body, contentType});
   }
 
   // Newest first (entries are appended chronologically)

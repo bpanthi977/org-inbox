@@ -26,7 +26,6 @@
 		<dict>
 			<key>NSExtensionActivationRule</key>
 			<dict>
-				<!-- Accept up to 10 attachments of any type -->
 				<key>NSExtensionActivationSupportsAttachmentsWithMaxCount</key>
 				<integer>10</integer>
 				<key>NSExtensionActivationSupportsFileWithMaxCount</key>
@@ -46,5 +45,7 @@
 		<key>NSExtensionPrincipalClass</key>
 		<string>$(PRODUCT_MODULE_NAME).ShareViewController</string>
 	</dict>
+	<key>RCTNewArchEnabled</key>
+	<true/>
 </dict>
 </plist>
