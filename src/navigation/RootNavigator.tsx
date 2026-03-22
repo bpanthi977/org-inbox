@@ -1,5 +1,5 @@
-import React from 'react';
-import {TouchableOpacity, Text, StyleSheet} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {TouchableOpacity, Text, StyleSheet, BackHandler} from 'react-native';
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -28,14 +28,18 @@ interface Props {
 }
 
 export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
-  // If app launched from a share but no folder is configured, go to Settings first.
-  const startOnSettings =
-    !initialShareItems?.length || !Settings.hasConfiguredPath();
+  const [navigatorReady, setNavigatorReady] = useState(false);
+
+  useEffect(() => {
+    if (navigatorReady && initialShareItems?.length && Settings.hasConfiguredPath()) {
+      navigationRef.navigate('SharePreview', {items: initialShareItems});
+    }
+  }, [navigatorReady, initialShareItems]);
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} onReady={() => setNavigatorReady(true)}>
       <Stack.Navigator
-        initialRouteName={startOnSettings ? 'Settings' : 'SharePreview'}
+        initialRouteName="Settings"
         screenOptions={{
           headerStyle: {backgroundColor: '#F2F2F7'},
           headerTitleStyle: {fontSize: 17, fontWeight: '600'},
@@ -66,7 +70,6 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
 
         <Stack.Screen
           name="SharePreview"
-          initialParams={initialShareItems?.length ? {items: initialShareItems} : undefined}
           options={({
             navigation,
           }: {
@@ -90,8 +93,20 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
           {props => (
             <SharePreviewScreen
               items={props.route.params.items}
-              onSave={() => props.navigation.goBack()}
-              onCancel={() => props.navigation.goBack()}
+              onSave={() => {
+                if (props.navigation.canGoBack()) {
+                  props.navigation.goBack();
+                } else {
+                  BackHandler.exitApp();
+                }
+              }}
+              onCancel={() => {
+                if (props.navigation.canGoBack()) {
+                  props.navigation.goBack();
+                } else {
+                  BackHandler.exitApp();
+                }
+              }}
             />
           )}
         </Stack.Screen>
