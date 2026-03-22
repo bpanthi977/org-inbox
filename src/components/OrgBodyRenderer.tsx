@@ -13,11 +13,16 @@ type Span =
   | {kind: 'text'; value: string}
   | {kind: 'url-link'; href: string; label: string};
 
+type TableRow =
+  | {kind: 'header'; cells: string[]}
+  | {kind: 'data'; cells: string[]}
+  | {kind: 'separator'};
+
 type Block =
   | {kind: 'paragraph'; spans: Span[]}
   | {kind: 'unordered-list'; items: Span[][]}
   | {kind: 'ordered-list'; items: Span[][]}
-  | {kind: 'table'; rows: string[][]}
+  | {kind: 'table'; rows: TableRow[]}
   | {kind: 'image'; filename: string}
   | {kind: 'file-link'; filename: string; label?: string};
 
@@ -96,17 +101,47 @@ function flushList(run: ListRun): Block | null {
   return {kind: run.ordered ? 'ordered-list' : 'unordered-list', items};
 }
 
+function isSeparatorLine(cells: string[]): boolean {
+  // Org separator rows look like |---+---|: each cell (after splitting on |)
+  // contains only hyphens and pluses, e.g. "-------" or "---+---" as a whole cell.
+  return (
+    cells.length > 0 &&
+    cells.every(c => /^[-+]*$/.test(c)) &&
+    cells.some(c => c.includes('-'))
+  );
+}
+
 function flushTable(lines: string[]): Block | null {
-  const rows: string[][] = [];
+  const tableRows: TableRow[] = [];
+  // Cells accumulated since the last separator (or start), flushed on separator
+  const pending: string[][] = [];
+  let seenFirstSeparator = false;
+
   for (const line of lines) {
-    // Split on |, discard first/last empty segments from leading/trailing |
     const cells = line.split('|').slice(1, -1).map(c => c.trim());
-    // Skip separator rows (all cells match /^-*$/)
-    if (cells.every(c => /^-*$/.test(c))) {continue;}
-    if (cells.length > 0) {rows.push(cells);}
+    if (cells.length === 0) {continue;}
+
+    if (isSeparatorLine(cells)) {
+      if (!seenFirstSeparator) {
+        // First separator: flush pending rows as header rows, omit the separator itself
+        seenFirstSeparator = true;
+        for (const c of pending) {tableRows.push({kind: 'header', cells: c});}
+      } else {
+        // Mid-table separator: flush pending as data, then add a separator marker
+        for (const c of pending) {tableRows.push({kind: 'data', cells: c});}
+        tableRows.push({kind: 'separator'});
+      }
+      pending.length = 0;
+    } else {
+      pending.push(cells);
+    }
   }
-  if (rows.length === 0) {return null;}
-  return {kind: 'table', rows};
+
+  // Flush any remaining rows as data
+  for (const c of pending) {tableRows.push({kind: 'data', cells: c});}
+
+  if (tableRows.length === 0) {return null;}
+  return {kind: 'table', rows: tableRows};
 }
 
 function parseBlocks(body: string): Block[] {
@@ -245,23 +280,30 @@ function ImageBlock({
   );
 }
 
-function TableBlock({rows}: {rows: string[][]}): React.JSX.Element {
-  // Determine column count from widest row
-  const colCount = Math.max(...rows.map(r => r.length));
+function TableBlock({rows}: {rows: TableRow[]}): React.JSX.Element {
+  const dataRows = rows.filter(r => r.kind !== 'separator') as Array<{kind: 'header' | 'data'; cells: string[]}>;
+  const colCount = dataRows.length > 0 ? Math.max(...dataRows.map(r => r.cells.length)) : 0;
+  if (colCount === 0) {return <View />;}
 
   return (
     <View style={styles.table}>
-      {rows.map((row, ri) => (
-        <View key={ri} style={[styles.tableRow, ri === 0 && styles.tableHeaderRow]}>
-          {Array.from({length: colCount}).map((_, ci) => (
-            <View key={ci} style={styles.tableCell}>
-              <Text style={[styles.tableCellText, ri === 0 && styles.tableHeaderText]}>
-                {row[ci] ?? ''}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ))}
+      {rows.map((row, ri) => {
+        if (row.kind === 'separator') {
+          return <View key={ri} style={styles.tableSeparator} />;
+        }
+        const isHeader = row.kind === 'header';
+        return (
+          <View key={ri} style={[styles.tableRow, isHeader && styles.tableHeaderRow]}>
+            {Array.from({length: colCount}).map((_, ci) => (
+              <View key={ci} style={styles.tableCell}>
+                <Text style={[styles.tableCellText, isHeader && styles.tableHeaderText]}>
+                  {row.cells[ci] ?? ''}
+                </Text>
+              </View>
+            ))}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -402,6 +444,10 @@ const styles = StyleSheet.create({
   },
   tableHeaderText: {
     fontWeight: '600',
+  },
+  tableSeparator: {
+    height: 2,
+    backgroundColor: '#3C3C43',
   },
   image: {
     width: '100%',
