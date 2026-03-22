@@ -12,6 +12,7 @@
 | Phase 6: Preview screen and content components | **DONE** |
 | Phase 7: File storage and attachment handling | **DONE** |
 | Phase 8: Edge cases and polish | **DONE** |
+| Phase 9: Inbox list home screen | **DONE** |
 
 ---
 

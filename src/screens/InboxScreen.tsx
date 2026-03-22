@@ -1,0 +1,229 @@
+import React, {useState, useCallback} from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+  type ListRenderItemInfo,
+} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
+import {loadInboxEntries, formatOrgDateForDisplay, type ParsedEntry} from '../services/orgParser';
+import type {ContentType} from '../types';
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+const CONTENT_ICONS: Record<ContentType, string> = {
+  url: '🌐',
+  text: '📝',
+  image: '🏞',
+  video: '🎬',
+  audio: '🎵',
+  file: '📎',
+};
+
+function OrgBody({body}: {body: string}) {
+	return (
+		<Text style={styles.body}>{body}</Text>
+	)
+}
+
+function OrgEntry({item, isExpanded, onPress}: {item: ParsedEntry, isExpanded: boolean, onPress: () => void}) {
+
+  const icon = CONTENT_ICONS[item.contentType];
+  const dateStr = formatOrgDateForDisplay(item.created);
+
+  return (
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onPress}
+      activeOpacity={0.7}>
+      <View style={styles.rowHeader}>
+        <Text style={styles.icon}>{icon}</Text>
+        <View style={styles.rowMeta}>
+          <Text style={styles.heading} numberOfLines={1} ellipsizeMode="tail">
+            {item.heading}
+          </Text>
+          {dateStr ? <Text style={styles.date}>{dateStr}</Text> : null}
+        </View>
+        <Text style={[styles.chevron, isExpanded && styles.chevronExpanded]}>
+																																							 ›
+        </Text>
+      </View>
+      {isExpanded && item.body ? (<OrgBody body={item.body}></OrgBody>) : null}
+    </TouchableOpacity>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+
+export function InboxScreen(): React.JSX.Element {
+  const [entries, setEntries] = useState<ParsedEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | undefined>();
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const result = await loadInboxEntries();
+      setEntries(result);
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to read inbox.org');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  // ── Render helpers ──────────────────────────────────────────────────────────
+	function renderItem({item, index}: ListRenderItemInfo<ParsedEntry>) {
+		const isExpanded = expandedIndex === index;
+		return (
+			<OrgEntry
+				isExpanded={isExpanded}
+				item={item}
+				onPress={() => { 
+					setExpandedIndex(isExpanded ? null : index)
+				}}>
+			</OrgEntry>
+		) 
+	}
+
+
+  // ── States ──────────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={load}>
+          <Text style={styles.retryLabel}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.emptyText}>
+          {'No notes yet.\nShare something to get started.'}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={entries}
+      keyExtractor={(_, i) => String(i)}
+      renderItem={renderItem}
+      contentContainerStyle={styles.list}
+      ItemSeparatorComponent={() => <View style={styles.separator} />}
+    />
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#F2F2F7',
+  },
+  list: {
+    backgroundColor: '#F2F2F7',
+    paddingVertical: 8,
+  },
+  row: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  rowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: 18,
+    marginRight: 10,
+    width: 26,
+    textAlign: 'center',
+  },
+  rowMeta: {
+    flex: 1,
+  },
+  heading: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  date: {
+    fontSize: 12,
+    color: '#8E8E93',
+    marginTop: 2,
+  },
+  chevron: {
+    fontSize: 20,
+    color: '#C7C7CC',
+    marginLeft: 8,
+    transform: [{rotate: '0deg'}],
+  },
+  chevronExpanded: {
+    transform: [{rotate: '90deg'}],
+  },
+  body: {
+    marginTop: 8,
+    marginLeft: 36,
+    fontSize: 13,
+    color: '#3C3C43',
+    lineHeight: 18,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#C6C6C8',
+    marginLeft: 52,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#8E8E93',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  errorText: {
+    fontSize: 15,
+    color: '#FF3B30',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+  },
+  retryLabel: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+});

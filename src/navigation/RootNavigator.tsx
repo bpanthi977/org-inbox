@@ -8,12 +8,14 @@ import {
   createNativeStackNavigator,
   type NativeStackNavigationProp,
 } from '@react-navigation/native-stack';
+import {InboxScreen} from '../screens/InboxScreen';
 import {SettingsScreen} from '../screens/SettingsScreen';
 import {SharePreviewScreen} from '../screens/SharePreviewScreen';
 import {Settings} from '../storage/settings';
 import type {SharedItem} from '../types';
 
 export type RootStackParamList = {
+  Inbox: undefined;
   Settings: {showBanner?: boolean} | undefined;
   SharePreview: {items: SharedItem[]};
 };
@@ -36,10 +38,17 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
     }
   }, [navigatorReady, initialShareItems]);
 
+  // Start on Settings if launched from share intent but no folder configured;
+  // otherwise start on the Inbox home screen.
+  const initialRoute =
+    initialShareItems?.length && !Settings.hasConfiguredPath()
+      ? 'Settings'
+      : 'Inbox';
+
   return (
     <NavigationContainer ref={navigationRef} onReady={() => setNavigatorReady(true)}>
       <Stack.Navigator
-        initialRouteName="Settings"
+        initialRouteName={initialRoute}
         screenOptions={{
           headerStyle: {backgroundColor: '#F2F2F7'},
           headerTitleStyle: {fontSize: 17, fontWeight: '600'},
@@ -47,9 +56,30 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
         }}>
 
         <Stack.Screen
+          name="Inbox"
+          options={({
+            navigation,
+          }: {
+            navigation: NativeStackNavigationProp<RootStackParamList, 'Inbox'>;
+          }) => ({
+            title: 'org-inbox',
+            headerRight: () => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Settings')}
+                hitSlop={8}
+                accessibilityLabel="Settings"
+                style={styles.gearButton}>
+                <Text style={styles.gearIcon}>⚙</Text>
+              </TouchableOpacity>
+            ),
+          })}>
+          {() => <InboxScreen />}
+        </Stack.Screen>
+
+        <Stack.Screen
           name="Settings"
           options={{
-            title: 'org-inbox',
+            title: 'Settings',
             headerRight: () => null,
           }}>
           {props => (
@@ -62,6 +92,8 @@ export function RootNavigator({initialShareItems}: Props): React.JSX.Element {
                   props.navigation.replace('SharePreview', {
                     items: initialShareItems,
                   });
+                } else {
+                  props.navigation.goBack();
                 }
               }}
             />
