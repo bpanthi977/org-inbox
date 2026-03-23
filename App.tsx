@@ -51,7 +51,6 @@ class ShareIntentListener {
 		if (this.initialized) return;
 		ReceiveSharingIntent.getReceivedFiles(
 			(files: any[]) => {
-				console.log('Received files', files)
 				if (!files?.length) {return;}
 				const items = files.map(toSharedItem);
 				this._pending.push(items);
@@ -59,7 +58,6 @@ class ShareIntentListener {
 			},
 			(_error: any) => {
 				// No share data on this launch — normal startup, do nothing
-				console.log("Sharing Intent error: ", _error);
 			},
 			'orginbox',
 		);
@@ -77,7 +75,6 @@ class ShareIntentListener {
 	}
 
 	private update() {
-		console.log('Updating listeners', this._pending.length, this._listeners.length);
 		if (this._pending.length == 0) return;
 		for (const items of this._pending) {
 			this._listeners.forEach(l => l(items));
@@ -93,11 +90,9 @@ const AppController = {
 function App(): React.JSX.Element {
 	const isDarkMode = useColorScheme() === 'dark';
 	const [sharedItems, setSharedItems] = useState<SharedItem[] | undefined>()
-	console.log("App", {sharedItems, isDarkMode});
 	useEffect(() => {
 		AppController.share_intents.initialize();
 		return AppController.share_intents.addListener((items: SharedItem[]) => {
-			console.log('Received item', {items});
 			setSharedItems(items);
 		});
 	}, []);
