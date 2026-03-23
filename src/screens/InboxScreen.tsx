@@ -122,7 +122,6 @@ function OrgEntry({
       Animated.timing(translateX, {toValue: -500, duration: 250, useNativeDriver: true}),
       Animated.timing(opacityAnim, {toValue: 0, duration: 200, useNativeDriver: true}),
     ]).start(() => {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       onDelete();
     });
   };
@@ -200,13 +199,15 @@ export function InboxScreen(): React.JSX.Element {
   }, []);
 
   const handleDelete = useCallback(async (entry: ParsedEntry, index: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setEntries(prev => prev.filter((_, i) => i !== index));
     try {
       await deleteInboxEntry(entry);
-      setEntries(prev => prev.filter((_, i) => i !== index));
     } catch (e: any) {
+      load();
       setError(e?.message ?? 'Failed to delete entry');
     }
-  }, []);
+  }, [load]);
 
   useFocusEffect(
     useCallback(() => {
